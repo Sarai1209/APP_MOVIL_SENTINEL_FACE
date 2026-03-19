@@ -1,10 +1,9 @@
 import { Platform } from 'react-native';
+type GradientTuple = [string, string, ...string[]];
 
-const tintColorLight = '#0a7ea4';
-const tintColorDark = '#fff';
-const pinkNeon = '#FF00FF'
-const purpleNeon = '#9D00FF'
-const backgroundDark = '#050505'
+const pinkNeon = '#FF00FF';
+const purpleNeon = '#9D00FF';
+const backgroundDark = '#050505';
 
 export const Colors = {
   light: {
@@ -23,8 +22,15 @@ export const Colors = {
     tabIconDefault: '#444455',
     tabIconSelected: pinkNeon,
     pinkNeon: pinkNeon,
-    purpleNeon: purpleNeon ,
-    carBg: '#121225',
+    purpleNeon: purpleNeon,
+    cardBg: 'rgba(225, 255, 255, 0.03)',
+    overlay: 'rgba(5, 5, 20, 0.3)',
+    inputBg: 'rgba(0, 0, 0, 0.4)',
+  },
+  Gradients: {
+    primary: [purpleNeon, pinkNeon] as GradientTuple,
+    admin: ['#4c669f', '#3b5998'] as GradientTuple,
+    overlay: ['rgba(5, 5, 20, 0.1)', 'rgba(5, 5, 20, 0.6)'] as GradientTuple,
   },
 };
 
