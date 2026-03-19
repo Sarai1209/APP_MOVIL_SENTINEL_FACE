@@ -71,7 +71,7 @@ export default function HomeScreen() {
               </TouchableOpacity>
             </View>
 
-            //* Input de ID *//
+            {/* Input de ID */}
             <View style={styles.inputWrapper}>
               <Text style={styles.label}>{role === 'admin' ? 'ADMIN ID' : 'USUARIO ID'}</Text>
               <View style={styles.inputContainer}>
@@ -84,7 +84,7 @@ export default function HomeScreen() {
               </View>
             </View>
 
-            //* Input de Contraseña*//
+            {/* Input de Contraseña*/}
             <View style={styles.inputWrapper}>
               <Text style={styles.label}>CONTRASEÑA</Text>
               <View style={styles.inputContainer}>
@@ -101,7 +101,7 @@ export default function HomeScreen() {
               </View>
             </View>
 
-           //* Botón de entrada* //
+           {/* Botón de entrada */}
             <TouchableOpacity style={styles.button} onPress={handleLogin}>
               <LinearGradient
                 colors={role === 'admin' ? Colors.Gradients.admin : Colors.Gradients.primary as any}
@@ -146,7 +146,6 @@ const styles = StyleSheet.create({
     padding: 2, 
     justifyContent: 'center', 
     alignItems: 'center',
-    // Glow effect
     shadowColor: Colors.dark.pinkNeon,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.9,
