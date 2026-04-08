@@ -1,145 +1,132 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { ChevronRight, LogOut, ShieldCheck, User as UserIcon } from 'lucide-react-native';
+import { ChevronRight, History, KeyRound, LogOut, User } from 'lucide-react-native';
 import React from 'react';
-import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import StatusBadge from '../../components/ui/StatusBadge';
 import { Colors } from '../../constants/theme';
-
+import { useAuth } from '../../context/AuthContext';
+ 
+const MENU = [
+  { icon: User,    label: 'Editar perfil',         route: '/(user)/edit-profile'    },
+  { icon: KeyRound,label: 'Cambiar contraseña',    route: '/(user)/change-password' },
+  { icon: History, label: 'Historial de escaneos', route: '/(user)/history'         },
+];
+ 
 export default function ProfileScreen() {
+  const { user, logout } = useAuth();
   const router = useRouter();
-
+ 
+  // Genera iniciales a partir del nombre real del usuario
+  const initials = user?.name
+    ? user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+    : 'U';
+ 
   const handleLogout = () => {
-    router.replace('/');
+    Alert.alert('Cerrar sesión', '¿Estás seguro de que quieres salir?', [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Salir', style: 'destructive', onPress: () => { logout(); router.replace('/'); } },
+    ]);
   };
-
+ 
+  const C = Colors.dark;
+ 
   return (
-    <View style={styles.container}>
-      <LinearGradient 
-        colors={['#050514', '#0a0a25']} 
-        style={StyleSheet.absoluteFill} 
-      />
-      
-      {/* Header del Perfil */}
-      <View style={styles.header}>
-        <View style={styles.avatarGlow}>
-          <View style={styles.avatarInner}>
-            <UserIcon color={Colors.dark.pinkNeon} size={40} />
-          </View>
+    <LinearGradient colors={['#050514', '#0D0D2B', '#050514']} style={styles.bg}>
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        <Text style={styles.pageTitle}>Mi perfil</Text>
+ 
+        {/* Avatar con iniciales del usuario real */}
+        <View style={styles.avatarSection}>
+          <LinearGradient colors={Colors.Gradients.primary} style={styles.avatar}>
+            <Text style={styles.avatarTxt}>{initials}</Text>
+          </LinearGradient>
+          <Text style={styles.name}>{user?.name}</Text>
+          <Text style={styles.email}>{user?.email}</Text>
+          {/* StatusBadge reutilizable mostrando rol */}
+          <StatusBadge status="active" label={user?.role === 'admin' ? 'Administrador' : 'Usuario'} />
         </View>
-        <Text style={styles.userName}>Usuario</Text>
-        <Text style={styles.userSub}>sistema</Text>
-      </View>
-
-      {/* Sección de Opciones */}
-      <View style={styles.menuContainer}>
-        <TouchableOpacity style={styles.menuItem}>
-          <ShieldCheck color="rgba(255,255,255,0.6)" size={20} />
-          <Text style={styles.menuText}>Seguridad y Permisos</Text>
-          <ChevronRight color="rgba(255,255,255,0.3)" size={18} />
+ 
+        {/* Info de cuenta — GET /api/users/me */}
+        <View style={styles.infoCard}>
+          {[
+            { label: 'ID de usuario',    value: user?.id ?? '—' },
+            { label: 'Estado',           value: 'Activo'         },
+            { label: 'Último acceso',    value: 'Hoy, 09:34 a.m.' },
+          ].map((item, i) => (
+            <View key={i} style={[styles.infoRow, i > 0 && styles.rowDivider]}>
+              <Text style={styles.infoLabel}>{item.label}</Text>
+              <Text style={styles.infoValue}>{item.value}</Text>
+            </View>
+          ))}
+        </View>
+ 
+        {/* Menú de opciones */}
+        <View style={styles.menuCard}>
+          {MENU.map((item, i) => (
+            <TouchableOpacity
+              key={i}
+              style={[styles.menuRow, i > 0 && styles.rowDivider]}
+              onPress={() => router.push(item.route as any)}
+            >
+              <View style={styles.menuIcon}>
+                <item.icon size={18} color={C.pinkNeon} />
+              </View>
+              <Text style={styles.menuLabel}>{item.label}</Text>
+              <ChevronRight size={15} color={C.textSubtle} />
+            </TouchableOpacity>
+          ))}
+        </View>
+ 
+        {/* Cerrar sesión */}
+        <TouchableOpacity onPress={handleLogout} style={styles.logoutBtn}>
+          <LogOut size={18} color={Colors.Status.error} />
+          <Text style={styles.logoutTxt}>Cerrar sesión</Text>
         </TouchableOpacity>
-
-        {/* Botón de salirse */}
-        <TouchableOpacity 
-          style={styles.logoutButton} 
-          onPress={handleLogout}
-        >
-          <LogOut color="#ff4444" size={20} />
-          <Text style={styles.logoutText}>DESCONECTARSE</Text>
-        </TouchableOpacity>
-      </View>
-
-      <Text style={styles.version}>Sentinel face</Text>
-    </View>
+      </ScrollView>
+    </LinearGradient>
   );
 }
-
+ 
+const C = Colors.dark;
+ 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#050514' },
-  header: { 
-    alignItems: 'center', 
-    marginTop: Platform.OS === 'ios' ? 80 : 60,
-    marginBottom: 40 
+  bg:        { flex: 1 },
+  scroll:    { paddingHorizontal: 20, paddingTop: 60, paddingBottom: 40 },
+  pageTitle: { fontSize: 24, fontWeight: '700', color: C.text, marginBottom: 28 },
+ 
+  avatarSection: { alignItems: 'center', marginBottom: 24 },
+  avatar: { width: 80, height: 80, borderRadius: 40, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+  avatarTxt:     { color: '#fff', fontSize: 28, fontWeight: '700' },
+  name:          { fontSize: 20, fontWeight: '700', color: C.text },
+  email:         { fontSize: 13, color: C.textMuted, marginTop: 4, marginBottom: 10 },
+ 
+  infoCard: {
+    backgroundColor: C.surface, borderRadius: 16,
+    borderWidth: 1, borderColor: C.border, marginBottom: 16,
   },
-  avatarGlow: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    backgroundColor: 'rgba(255, 0, 255, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: Colors.dark.pinkNeon,
-    shadowColor: Colors.dark.pinkNeon,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 15,
-    elevation: 10,
-    marginBottom: 20,
+  infoRow:    { flexDirection: 'row', justifyContent: 'space-between', padding: 14 },
+  rowDivider: { borderTopWidth: 1, borderTopColor: C.border },
+  infoLabel:  { color: C.textMuted, fontSize: 13 },
+  infoValue:  { color: C.text, fontSize: 13, fontWeight: '500' },
+ 
+  menuCard: {
+    backgroundColor: C.surface, borderRadius: 16,
+    borderWidth: 1, borderColor: C.border, marginBottom: 20,
   },
-  avatarInner: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#050514',
-    justifyContent: 'center',
-    alignItems: 'center',
+  menuRow:  { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 },
+  menuIcon: {
+    width: 36, height: 36, borderRadius: 10,
+    backgroundColor: 'rgba(255,0,255,0.1)',
+    alignItems: 'center', justifyContent: 'center',
   },
-  userName: { 
-    color: 'white', 
-    fontSize: 20, 
-    fontWeight: '300', 
-    letterSpacing: 4,
-    textTransform: 'uppercase'
+  menuLabel: { flex: 1, color: C.text, fontSize: 14 },
+ 
+  logoutBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
+    borderWidth: 1, borderColor: 'rgba(255,61,113,0.25)',
+    borderRadius: 14, paddingVertical: 14,
+    backgroundColor: 'rgba(255,61,113,0.06)',
   },
-  userSub: { 
-    color: 'rgba(255, 255, 255, 0.4)', 
-    fontSize: 10, 
-    marginTop: 8,
-    letterSpacing: 2
-  },
-  menuContainer: {
-    paddingHorizontal: 25,
-    width: '100%',
-  },
-  menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
-    padding: 18,
-    borderRadius: 15,
-    marginBottom: 15,
-    borderWidth: 0.5,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  menuText: { 
-    flex: 1, 
-    color: 'rgba(255,255,255,0.8)', 
-    marginLeft: 15, 
-    fontSize: 14 
-  },
-  logoutButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 68, 68, 0.08)',
-    padding: 18,
-    borderRadius: 15,
-    marginTop: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 68, 68, 0.2)',
-  },
-  logoutText: { 
-    color: '#ff4444', 
-    fontWeight: 'bold', 
-    marginLeft: 15, 
-    letterSpacing: 1.5,
-    fontSize: 13
-  },
-  version: {
-    position: 'absolute',
-    bottom: 30,
-    alignSelf: 'center',
-    color: 'rgba(255,255,255,0.2)',
-    fontSize: 10,
-    letterSpacing: 1
-  }
+  logoutTxt: { color: Colors.Status.error, fontSize: 15, fontWeight: '600' },
 });
