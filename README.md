@@ -1,50 +1,141 @@
-# Welcome to your Expo app 👋
+# Sentinel Face — App Móvil
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Sistema de control de acceso biométrico para hogares seguros, desarrollado como proyecto académico de ingeniería de software
 
-## Get started
+> **Tecnologías:** React Native · Expo SDK 54 · Expo Router · TypeScript
 
-1. Install dependencies
 
-   ```bash
-   npm install
-   ```
+## Requisitos previos
 
-2. Start the app
+Antes de instalar el proyecto asegúrate de tener lo siguiente:
 
-   ```bash
-   npx expo start
-   ```
+| Herramienta       | Versión mínima    | Descarga               |
+|                   |                   |                        |
+| Node.js           | 18.x o superior   | https://nodejs.org     |
+| npm               | 9.x o superior    | Incluido con Node.js   |
+| Expo Go (celular) | Última disponible | App Store / Play Store |
+| Git               | Cualquier versión | https://git-scm.com    |
 
-In the output, you'll find options to open the app in a
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+##  Instalación y ejecución
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+### 1. Clonar el repositorio
 
 ```bash
-npm run reset-project
+git clone https://github.com/Sarai1209/APP_MOVIL_SENTINEL_FACE.git
+cd APP_MOVIL_SENTINEL_FACE
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+### 2. Instalar dependencias
 
-## Learn more
+```bash
+npm install
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+### 3. Iniciar el desarrollo
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+```bash
+npm start
+```
 
-## Join the community
+O también puedes correrlo directamente en una plataforma:
 
-Join our community of developers creating universal apps.
+```bash
+npm run android   # Android
+npm run web       # Navegador web
+```
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+### 4. Abrir en el dispositivo
+
+Escanea el código QR que aparece en la terminal con la app **Expo Go** desde tu celular. Asegúrate de que el celular y el computador estén en la **misma red WiFi**.
+
+
+##  Credenciales
+
+La app usa usuarios simulados para demostrar el control de acceso por roles:
+
+| Rol            | Correo               | Acceso                                 |
+|                |                      |            |                                        |
+| Administrador  | admin@sentinel.com   | Panel admin completo                   |
+| Usuario        | usuario@sentinel.com | Tabs: inicio, escaneo, alertas, perfil |
+
+
+##  Estructura del proyecto
+
+APP_MOVIL_SENTINEL_FACE/
+│
+├── app/
+│   ├── _layout.tsx             ← Stack raíz con AuthProvider
+│   ├── index.tsx               ← Pantalla de login
+│   ├── +not-found.tsx          ← Modal 404
+│   │
+│   ├── (admin)/                ← Rutas protegidas — solo admin
+│   │   ├── _layout.tsx         ← Verificación de rol
+│   │   ├── dashboard.tsx       ← Panel de control
+│   │   ├── users.tsx           ← Gestión de usuarios
+│   │   ├── reports.tsx         ← Reportes de acceso
+│   │   └── settings.tsx        ← Configuración del sistema
+│   │
+│   └── (tabs)/                 ← Rutas protegidas — usuario normal
+│       ├── _layout.tsx         ← Verificación de autenticación
+│       ├── home.tsx            ← Inicio / dashboard
+│       ├── scan.tsx            ← Reconocimiento facial
+│       ├── alerts.tsx          ← Centro de alertas
+│       └── profile.tsx         ← Perfil y configuración
+│
+├── components/
+│   └── ui/
+│       ├── GradientButton.tsx  ← Botón con degradado
+│       ├── InputField.tsx      ← Campo de entrada con ícono
+│       ├── SentinelHeader.tsx  ← Encabezado de pantallas
+│       └── StatusBadge.tsx     ← Indicador de estado
+│
+├── constants/
+│   ├── theme.ts                ← Colores, gradientes, fuentes
+│   └── layout.ts               ← Spacing, radius, font sizes
+│
+├── context/
+│   └── AuthContext.tsx         ← Store de sesión y roles
+│
+└── assets/
+    └── images/
+        └── facial_scan_bg.png  ← Fondo de la pantalla de login
+```
+# Flujo de navegación
+
+index (Login)
+    │
+    ├── rol: admin ──→ (admin)/dashboard
+    │                       ├── users
+    │                       ├── reports
+    │                       └── settings
+    │
+    └── rol: user ───→ (tabs)/home
+                            ├── scan
+                            ├── alerts
+                            └── profile
+```
+
+## Dependencias principales
+  
+| Paquete                | Versión  | Uso                           |
+|                        |          |                               |
+| expo                   | ~54.0.33 | Framework principal           |
+| expo-router            | ~6.0.23  | Navegación basada en archivos |
+| react-native           | 0.81.5   | Base de la app                |
+| typescript             | ~5.9.2   | Tipado estático               |
+| expo-linear-gradient   | ~15.0.8  | Gradientes en UI              |
+| lucide-react-native    | ^0.577.0 | Íconos                        |
+| axios                  | ^1.14.0  | Peticiones HTTP al backend    |
+| react-native-reanimated| ~4.1.1   | Animaciones avanzadas         |
+| expo-image-picker      | ~17.0.10 | Captura de imagen facial      |
+
+
+## Patrón de diseño
+
+La interfaz sigue los principios de **Material Design 3** adaptados a React Native, con un tema oscuro personalizado basado en colores neón (magenta `#FF00FF` y púrpura `#9D00FF`) sobre fondos casi negros (`#050505`).
+
+## Autores
+
+**Brian y sarai** — Ingenieros de Software, 5.º semestre  
+Proyecto académico — Desarrollo de aplicaciones móviles
