@@ -1,14 +1,15 @@
 import React, { createContext, ReactNode, useContext, useState } from 'react';
- 
+import { api } from '../services/api';
+
 export type UserRole = 'admin' | 'user' | null;
- 
+
 export interface AuthUser {
   id:    string;
   name:  string;
   email: string;
   role:  UserRole;
 }
- 
+
 interface AuthContextType {
   user:            AuthUser | null;
   isAuthenticated: boolean;
@@ -16,26 +17,39 @@ interface AuthContextType {
   login:           (email: string, password: string, role: UserRole) => Promise<void>;
   logout:          () => void;
 }
- 
+
 const AuthContext = createContext<AuthContextType | null>(null);
- 
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
- 
-  const login = async (email: string, _password: string, role: UserRole) => {
-    // Ruta backend: POST /api/auth/login
-    await new Promise(res => setTimeout(res, 800));
-    if (!email) throw new Error('Credenciales inválidas');
-    setUser({
-      id:    role === 'admin' ? '1' : '2',
-      name:  role === 'admin' ? 'Admin Sentinel' : 'Sarai Díaz',
-      email,
-      role,
-    });
+
+  const login = async (email: string, password: string, role: UserRole) => {
+    if (!email || !password) throw new Error('Ingresa tus credenciales.');
+
+    if (role === 'admin') {
+      const { data } = await api.login(email, password);
+      if (!data.success) throw new Error('Credenciales inválidas.');
+      setUser({
+        id:    String(data.admin_id),
+        name:  data.name,
+        email: data.email,
+        role:  'admin',
+      });
+    } else {
+      // Los empleados no tienen endpoint de login propio —
+      // se autentican físicamente vía reconocimiento facial.
+      // Para la app móvil se permite acceso como usuario demo.
+      setUser({
+        id:    '0',
+        name:  email.split('@')[0],
+        email,
+        role:  'user',
+      });
+    }
   };
- 
+
   const logout = () => setUser(null);
- 
+
   return (
     <AuthContext.Provider
       value={{ user, isAuthenticated: !!user, role: user?.role ?? null, login, logout }}
@@ -44,7 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     </AuthContext.Provider>
   );
 }
- 
+
 export function useAuth() {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error('useAuth debe usarse dentro de AuthProvider');

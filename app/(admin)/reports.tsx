@@ -1,52 +1,83 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { AlertTriangle, CheckCircle, Clock, XCircle } from 'lucide-react-native';
-import React from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { AlertTriangle, CheckCircle, XCircle } from 'lucide-react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { Colors } from '../../constants/theme';
- 
-const REPORTS = [
-  { id: '1', user: 'Sarai Díaz',    action: 'Acceso concedido',  time: '08:32',  date: 'Hoy',   type: 'success' },
-  { id: '2', user: 'Carlos López',  action: 'Acceso concedido',  time: '08:45',  date: 'Hoy',   type: 'success' },
-  { id: '3', user: 'Juan Herrera',  action: 'Acceso denegado',   time: '09:01',  date: 'Hoy',   type: 'blocked' },
-  { id: '4', user: 'María Torres',  action: 'Intento fallido',   time: '09:15',  date: 'Hoy',   type: 'warning' },
-  { id: '5', user: 'Ana Martínez',  action: 'Acceso concedido',  time: '10:03',  date: 'Hoy',   type: 'success' },
-  { id: '6', user: 'Pedro Ramírez', action: 'Sesión expirada',   time: '10:30',  date: 'Hoy',   type: 'info'    },
-  { id: '7', user: 'Sarai Díaz',    action: 'Acceso concedido',  time: '07:55',  date: 'Ayer',  type: 'success' },
-  { id: '8', user: 'Juan Herrera',  action: 'Acceso denegado',   time: '08:10',  date: 'Ayer',  type: 'blocked' },
-];
- 
-const iconForType = (type: string) => {
-  if (type === 'success') return <CheckCircle size={16} color={Colors.Status.success} />;
-  if (type === 'blocked') return <XCircle     size={16} color={Colors.Status.error}   />;
-  if (type === 'warning') return <AlertTriangle size={16} color={Colors.Status.warning} />;
-  return <Clock size={16} color={Colors.Status.info} />;
-};
- 
-const colorForType = (type: string) => {
-  if (type === 'success') return Colors.Status.success;
-  if (type === 'blocked') return Colors.Status.error;
-  if (type === 'warning') return Colors.Status.warning;
-  return Colors.Status.info;
-};
- 
-export default function ReportsScreen() {
-  const grouped = REPORTS.reduce((acc, r) => {
-    if (!acc[r.date]) acc[r.date] = [];
-    acc[r.date].push(r);
+import { api } from '../../services/api';
+
+const C = Colors.dark;
+
+function groupByDate(logs: any[]): Record<string, any[]> {
+  return logs.reduce((acc, log) => {
+    const d   = new Date(log.event_time);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+
+    let label: string;
+    if (d.toDateString() === today.toDateString()) label = 'Hoy';
+    else if (d.toDateString() === yesterday.toDateString()) label = 'Ayer';
+    else label = d.toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
+
+    if (!acc[label]) acc[label] = [];
+    acc[label].push(log);
     return acc;
-  }, {} as Record<string, typeof REPORTS>);
- 
+  }, {} as Record<string, any[]>);
+}
+
+function timeStr(iso: string) {
+  return new Date(iso).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: false });
+}
+
+export default function ReportsScreen() {
+  const [logs,    setLogs]    = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refresh, setRefresh] = useState(false);
+
+  const fetchLogs = useCallback(async (isRefresh = false) => {
+    isRefresh ? setRefresh(true) : setLoading(true);
+    try {
+      const { data } = await api.getLogs({ limit: 100 });
+      setLogs(data.logs ?? []);
+    } catch {
+      setLogs([]);
+    } finally {
+      setLoading(false);
+      setRefresh(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchLogs(); }, [fetchLogs]);
+
+  const grouped  = groupByDate(logs);
+  const granted  = logs.filter(l => l.access_result === 'GRANTED').length;
+  const denied   = logs.filter(l => l.access_result === 'DENIED').length;
+  const spoofing = logs.filter(l => l.liveness === 'SPOOFING').length;
+
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
- 
-      <Text style={styles.title}>Reportes</Text>
- 
-      {/* Resumen rápido */}
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl refreshing={refresh} onRefresh={() => fetchLogs(true)}
+          tintColor={C.adminGold} colors={[C.adminGold]} />
+      }
+    >
+      <Text style={styles.title}>Reportes de acceso</Text>
+
       <View style={styles.summaryRow}>
         {[
-          { label: 'Accesos', value: '5', color: Colors.Status.success },
-          { label: 'Denegados', value: '2', color: Colors.Status.error  },
-          { label: 'Alertas', value: '1', color: Colors.Status.warning },
+          { label: 'Accesos',    value: granted,  color: Colors.Status.success },
+          { label: 'Denegados',  value: denied,   color: Colors.Status.error   },
+          { label: 'Spoofing',   value: spoofing,  color: Colors.Status.warning },
         ].map((s, i) => (
           <LinearGradient
             key={i}
@@ -58,51 +89,63 @@ export default function ReportsScreen() {
           </LinearGradient>
         ))}
       </View>
- 
-      {/* Grupos por fecha */}
-      {Object.entries(grouped).map(([date, items]) => (
-        <View key={date}>
-          <Text style={styles.dateLabel}>{date}</Text>
-          {items.map(item => (
-            <View key={item.id} style={styles.reportRow}>
-              <View style={[styles.iconWrap, { backgroundColor: `${colorForType(item.type)}15` }]}>
-                {iconForType(item.type)}
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.reportUser}>{item.user}</Text>
-                <Text style={styles.reportAction}>{item.action}</Text>
-              </View>
-              <Text style={styles.reportTime}>{item.time}</Text>
-            </View>
-          ))}
-        </View>
-      ))}
- 
+
+      {loading ? (
+        <ActivityIndicator color={C.adminGold} style={{ marginTop: 30 }} />
+      ) : (
+        Object.entries(grouped).map(([date, items]) => (
+          <View key={date}>
+            <Text style={styles.dateLabel}>{date} ({items.length})</Text>
+            {items.map((item, idx) => {
+              const ok    = item.access_result === 'GRANTED';
+              const spoof = item.liveness === 'SPOOFING';
+              const color = ok ? Colors.Status.success : spoof ? Colors.Status.warning : Colors.Status.error;
+              return (
+                <View key={item.log_id} style={styles.reportRow}>
+                  <View style={[styles.iconWrap, { backgroundColor: `${color}15` }]}>
+                    {ok
+                      ? <CheckCircle  size={16} color={color} />
+                      : spoof
+                        ? <AlertTriangle size={16} color={color} />
+                        : <XCircle size={16} color={color} />
+                    }
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.reportUser}>{item.full_name ?? 'Desconocido'}</Text>
+                    <Text style={styles.reportAction}>
+                      {ok ? 'Acceso concedido' : spoof ? 'Intento de spoofing' : 'Acceso denegado'}
+                      {item.confidence > 0 && ` · ${(item.confidence * 100).toFixed(0)}%`}
+                    </Text>
+                  </View>
+                  <Text style={styles.reportTime}>{timeStr(item.event_time)}</Text>
+                </View>
+              );
+            })}
+          </View>
+        ))
+      )}
     </ScrollView>
   );
 }
- 
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.dark.background },
+  container: { flex: 1, backgroundColor: C.background },
   content:   { padding: 20, paddingTop: 60, paddingBottom: 30 },
-  title:     { color: Colors.dark.text, fontSize: 22, fontWeight: '700', marginBottom: 20 },
-  summaryRow: { flexDirection: 'row', gap: 10, marginBottom: 28 },
-  summaryCard: {
-    flex: 1, borderRadius: 14, borderWidth: 1,
-    paddingVertical: 14, alignItems: 'center',
-  },
+  title:     { color: C.text, fontSize: 22, fontWeight: '700', marginBottom: 20 },
+  summaryRow:  { flexDirection: 'row', gap: 10, marginBottom: 28 },
+  summaryCard: { flex: 1, borderRadius: 14, borderWidth: 1, paddingVertical: 14, alignItems: 'center' },
   summaryValue: { fontSize: 24, fontWeight: '800' },
-  summaryLabel: { color: Colors.dark.textMuted, fontSize: 11, marginTop: 2 },
+  summaryLabel: { color: C.textMuted, fontSize: 11, marginTop: 2 },
   dateLabel: {
-    color: Colors.dark.textMuted, fontSize: 11, fontWeight: '600',
+    color: C.textMuted, fontSize: 11, fontWeight: '600',
     letterSpacing: 1.5, marginBottom: 8, marginTop: 16,
   },
   reportRow: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: Colors.dark.border,
+    paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: C.border,
   },
   iconWrap:     { width: 36, height: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
-  reportUser:   { color: Colors.dark.text, fontSize: 14, fontWeight: '500' },
-  reportAction: { color: Colors.dark.textMuted, fontSize: 12, marginTop: 2 },
-  reportTime:   { color: Colors.dark.textMuted, fontSize: 12 },
+  reportUser:   { color: C.text, fontSize: 14, fontWeight: '500' },
+  reportAction: { color: C.textMuted, fontSize: 12, marginTop: 2 },
+  reportTime:   { color: C.textMuted, fontSize: 12 },
 });
