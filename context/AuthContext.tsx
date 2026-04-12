@@ -1,7 +1,7 @@
 import React, { createContext, ReactNode, useContext, useState } from 'react';
 import { api } from '../services/api';
 
-export type UserRole = 'admin' | 'user' | null;
+export type UserRole = 'admin' | null;
 
 export interface AuthUser {
   id:    string;
@@ -14,7 +14,7 @@ interface AuthContextType {
   user:            AuthUser | null;
   isAuthenticated: boolean;
   role:            UserRole;
-  login:           (email: string, password: string, role: UserRole) => Promise<void>;
+  login:           (email: string, password: string) => Promise<void>;
   logout:          () => void;
 }
 
@@ -23,37 +23,17 @@ const AuthContext = createContext<AuthContextType | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
 
-  const login = async (email: string, password: string, role: UserRole) => {
+  const login = async (email: string, password: string) => {
     if (!email || !password) throw new Error('Ingresa tus credenciales.');
-
-    if (role === 'admin') {
-      const { data } = await api.login(email, password);
-      if (!data.success) throw new Error('Credenciales inválidas.');
-      setUser({
-        id:    String(data.admin_id),
-        name:  data.name,
-        email: data.email,
-        role:  'admin',
-      });
-    } else {
-      // Los empleados no tienen endpoint de login propio —
-      // se autentican físicamente vía reconocimiento facial.
-      // Para la app móvil se permite acceso como usuario demo.
-      setUser({
-        id:    '0',
-        name:  email.split('@')[0],
-        email,
-        role:  'user',
-      });
-    }
+    const { data } = await api.login(email, password);
+    if (!data.success) throw new Error('Credenciales inválidas.');
+    setUser({ id: String(data.admin_id), name: data.name, email: data.email, role: 'admin' });
   };
 
   const logout = () => setUser(null);
 
   return (
-    <AuthContext.Provider
-      value={{ user, isAuthenticated: !!user, role: user?.role ?? null, login, logout }}
-    >
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, role: user?.role ?? null, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
