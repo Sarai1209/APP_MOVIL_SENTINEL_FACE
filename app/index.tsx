@@ -51,8 +51,10 @@ export default function LoginScreen() {
     >
       <StatusBar barStyle="light-content" />
       <LinearGradient colors={Colors.Gradients.overlay as any} style={StyleSheet.absoluteFill} />
+
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.content}>
+
           <Animated.View style={[styles.logoContainer, { opacity: faceAnim }]}>
             <LinearGradient colors={Colors.Gradients.admin as any} style={styles.logoGlow}>
               <View style={styles.logoInner}>
@@ -60,8 +62,10 @@ export default function LoginScreen() {
               </View>
             </LinearGradient>
           </Animated.View>
+
           <Text style={styles.title}>Sentinel Face</Text>
           <Text style={styles.subtitle}>PANEL DE ADMINISTRACIÓN</Text>
+
           <View style={styles.loginCard}>
             <View style={styles.inputWrapper}>
               <Text style={styles.label}>CORREO ADMINISTRADOR</Text>
@@ -78,6 +82,7 @@ export default function LoginScreen() {
                 />
               </View>
             </View>
+
             <View style={styles.inputWrapper}>
               <Text style={styles.label}>CONTRASEÑA</Text>
               <View style={styles.inputContainer}>
@@ -95,16 +100,23 @@ export default function LoginScreen() {
                 </TouchableOpacity>
               </View>
             </View>
+
             {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
             <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={loading}>
-              <LinearGradient colors={Colors.Gradients.admin as any} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.buttonGradient}>
+              <LinearGradient
+                colors={Colors.Gradients.admin as any}
+                start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                style={styles.buttonGradient}
+              >
                 <View style={styles.buttonInner}>
-                  {loading ? <ActivityIndicator color="white" /> : (
-                    <>
-                      <Text style={styles.buttonText}>ACCEDER AL SISTEMA</Text>
-                      <Fingerprint color="white" size={20} />
-                    </>
-                  )}
+                  {loading
+                    ? <ActivityIndicator color="white" />
+                    : <>
+                        <Text style={styles.buttonText}>ACCEDER AL SISTEMA</Text>
+                        <Fingerprint color="white" size={20} />
+                      </>
+                  }
                 </View>
               </LinearGradient>
             </TouchableOpacity>
@@ -116,23 +128,23 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container:     { flex: 1 },
   scrollContent: { flexGrow: 1, justifyContent: 'center' },
   content: { alignItems: 'center', paddingHorizontal: 25, paddingTop: Platform.OS === 'android' ? 60 : 30, paddingBottom: 40 },
   logoContainer: { marginBottom: 20, alignItems: 'center', justifyContent: 'center' },
   logoGlow: { width: 100, height: 100, borderRadius: 50, padding: 2, justifyContent: 'center', alignItems: 'center', shadowColor: Colors.dark.adminGold, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.9, shadowRadius: 20, elevation: 20 },
   logoInner: { width: '100%', height: '100%', backgroundColor: '#050514', borderRadius: 50, justifyContent: 'center', alignItems: 'center' },
-  title: { fontSize: 26, fontWeight: '300', color: 'white', letterSpacing: 6, textAlign: 'center', marginBottom: 5 },
+  title:    { fontSize: 26, fontWeight: '300', color: 'white', letterSpacing: 6, textAlign: 'center', marginBottom: 5 },
   subtitle: { color: Colors.dark.adminGold, fontSize: 9, letterSpacing: 3, textAlign: 'center', marginBottom: 40, opacity: 0.8 },
   loginCard: { width: '100%', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 20, padding: 25, borderWidth: 0.5, borderColor: 'rgba(255,255,255,0.15)' },
   inputWrapper: { marginBottom: 25 },
-  label: { color: 'rgba(191,0,255,0.8)', fontSize: 9, marginBottom: 10, fontWeight: '600', letterSpacing: 2 },
+  label:        { color: 'rgba(191,0,255,0.8)', fontSize: 9, marginBottom: 10, fontWeight: '600', letterSpacing: 2 },
   inputContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.4)', borderRadius: 12, paddingHorizontal: 15, height: 52, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
-  input: { flex: 1, color: 'white', fontSize: 14 },
-  iconStyle: { marginRight: 12 },
-  errorText: { color: Colors.dark.redAlert, fontSize: 12, marginBottom: 12, textAlign: 'center' },
-  button: { width: '100%', height: 58, marginTop: 10 },
+  input:          { flex: 1, color: 'white', fontSize: 14 },
+  iconStyle:      { marginRight: 12 },
+  errorText:      { color: Colors.dark.redAlert, fontSize: 12, marginBottom: 12, textAlign: 'center' },
+  button:         { width: '100%', height: 58, marginTop: 10 },
   buttonGradient: { flex: 1, borderRadius: 15, justifyContent: 'center' },
-  buttonInner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
-  buttonText: { color: 'white', fontWeight: '600', marginRight: 12, letterSpacing: 2 },
+  buttonInner:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
+  buttonText:     { color: 'white', fontWeight: '600', marginRight: 12, letterSpacing: 2 },
 });

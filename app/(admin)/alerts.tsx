@@ -1,11 +1,11 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { AlertTriangle, Bell, CheckCircle, Info, ShieldAlert } from 'lucide-react-native';
-import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useState } from 'react';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Colors } from '../../constants/theme';
 import { useAuth } from '../../context/AuthContext';
-import { api } from '../../services/api';
+import { useMockData } from '../../context/MockDataContext';
 
 type FilterKey = 'all' | 'SPOOFING_ATTEMPT' | 'UNKNOWN_FACE' | 'resolved';
 const C = Colors.dark;
@@ -26,48 +26,30 @@ function severityColor(s: string) {
 function alertIcon(type: string, color: string) {
   if (type?.includes('SPOOF'))   return <ShieldAlert size={20} color={color} />;
   if (type?.includes('UNKNOWN')) return <AlertTriangle size={20} color={color} />;
-  return <Info size={20} color={color} />;
+  if (type?.includes('ACCESS'))  return <Info size={20} color={color} />;
+  return <Bell size={20} color={color} />;
 }
 
 function timeAgo(iso: string) {
   const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
-  if (diff < 60) return `Hace ${diff}s`;
+  if (diff < 60)   return `Hace ${diff}s`;
   if (diff < 3600) return `Hace ${Math.floor(diff / 60)} min`;
   return `Hace ${Math.floor(diff / 3600)}h`;
 }
 
 export default function AlertsScreen() {
-  const router   = useRouter();
-  const { user } = useAuth();
-  const [filter,  setFilter]  = useState<FilterKey>('all');
-  const [alerts,  setAlerts]  = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refresh, setRefresh] = useState(false);
+  const router             = useRouter();
+  const { user }           = useAuth();
+  const { alerts, resolveAlert } = useMockData();
+  const [filter, setFilter] = useState<FilterKey>('all');
 
-  const fetchAlerts = useCallback(async (isRefresh = false) => {
-    isRefresh ? setRefresh(true) : setLoading(true);
-    try {
-      const resolved = filter === 'resolved' ? 1 : filter === 'all' ? undefined : 0;
-      const { data } = await api.getAlerts(resolved as any);
-      setAlerts(data.alerts ?? []);
-    } catch { setAlerts([]); }
-    finally { setLoading(false); setRefresh(false); }
-  }, [filter]);
-
-  useEffect(() => { fetchAlerts(); }, [fetchAlerts]);
-
-  const displayed = (filter === 'SPOOFING_ATTEMPT' || filter === 'UNKNOWN_FACE')
-    ? alerts.filter(a => a.alert_type === filter)
-    : alerts;
+  const displayed = alerts.filter(a => {
+    if (filter === 'resolved')        return a.resolved;
+    if (filter === 'all')             return !a.resolved;
+    return !a.resolved && a.alert_type === filter;
+  });
 
   const unread = alerts.filter(a => !a.resolved).length;
-
-  const markRead = async (alertId: number) => {
-    try {
-      await api.resolveAlert(alertId, user?.id ?? 1);
-      setAlerts(prev => prev.map(a => a.alert_id === alertId ? { ...a, resolved: true } : a));
-    } catch {}
-  };
 
   return (
     <LinearGradient colors={['#050514', '#0D0D2B', '#050514']} style={styles.bg}>
@@ -89,49 +71,46 @@ export default function AlertsScreen() {
         ))}
       </ScrollView>
 
-      {loading ? (
-        <ActivityIndicator color={C.pinkNeon} style={{ marginTop: 40 }} />
-      ) : (
-        <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}
-          refreshControl={<RefreshControl refreshing={refresh} onRefresh={() => fetchAlerts(true)} tintColor={C.pinkNeon} colors={[C.pinkNeon]} />}>
-          {displayed.length === 0 ? (
-            <View style={styles.empty}>
-              <Bell size={40} color={C.textSubtle} />
-              <Text style={styles.emptyTxt}>Sin alertas en esta categoría</Text>
-            </View>
-          ) : (
-            displayed.map(alert => {
-              const color = severityColor(alert.severity);
-              return (
-                <TouchableOpacity key={alert.alert_id}
-                  style={[styles.card, !alert.resolved && styles.cardUnread]}
-                  onPress={() => router.push(`/(admin)/alert-detail?id=${alert.alert_id}`)}
-                  activeOpacity={0.8}>
-                  <View style={[styles.iconWrap, { backgroundColor: `${color}18` }]}>
-                    {alertIcon(alert.alert_type, color)}
+      <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
+        {displayed.length === 0 ? (
+          <View style={styles.empty}>
+            <Bell size={40} color={C.textSubtle} />
+            <Text style={styles.emptyTxt}>
+              {filter === 'resolved' ? 'No hay alertas resueltas' : 'Sin alertas pendientes'}
+            </Text>
+          </View>
+        ) : (
+          displayed.map(alert => {
+            const color = severityColor(alert.severity);
+            return (
+              <TouchableOpacity key={alert.alert_id}
+                style={[styles.card, !alert.resolved && styles.cardUnread]}
+                onPress={() => router.push(`/(admin)/alert-detail?id=${alert.alert_id}`)}
+                activeOpacity={0.8}>
+                <View style={[styles.iconWrap, { backgroundColor: `${color}18` }]}>
+                  {alertIcon(alert.alert_type, color)}
+                </View>
+                <View style={styles.body}>
+                  <Text style={styles.alertTitle}>{alert.alert_type?.replace(/_/g, ' ')}</Text>
+                  <Text style={styles.alertDesc} numberOfLines={2}>{alert.description}</Text>
+                  <Text style={styles.alertTime}>{timeAgo(alert.created_at)}</Text>
+                </View>
+                <View style={styles.cardRight}>
+                  <View style={[styles.severityBadge, { backgroundColor: `${color}20`, borderColor: `${color}40` }]}>
+                    <Text style={[styles.severityText, { color }]}>{alert.severity}</Text>
                   </View>
-                  <View style={styles.body}>
-                    <Text style={styles.alertTitle}>{alert.alert_type?.replace(/_/g, ' ')}</Text>
-                    <Text style={styles.alertDesc} numberOfLines={2}>{alert.description}</Text>
-                    <Text style={styles.alertTime}>{timeAgo(alert.created_at)}</Text>
-                  </View>
-                  <View style={styles.cardRight}>
-                    <View style={[styles.severityBadge, { backgroundColor: `${color}20`, borderColor: `${color}40` }]}>
-                      <Text style={[styles.severityText, { color }]}>{alert.severity}</Text>
-                    </View>
-                    {!alert.resolved && (
-                      <TouchableOpacity style={styles.markBtn}
-                        onPress={() => markRead(alert.alert_id)}>
-                        <CheckCircle size={18} color={Colors.Status.success} />
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                </TouchableOpacity>
-              );
-            })
-          )}
-        </ScrollView>
-      )}
+                  {!alert.resolved && (
+                    <TouchableOpacity style={styles.markBtn}
+                      onPress={() => resolveAlert(alert.alert_id, user?.name ?? 'Admin')}>
+                      <CheckCircle size={20} color={Colors.Status.success} />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </TouchableOpacity>
+            );
+          })
+        )}
+      </ScrollView>
     </LinearGradient>
   );
 }
