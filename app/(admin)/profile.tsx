@@ -10,7 +10,7 @@ const C = Colors.dark;
 
 export default function ProfileScreen() {
   const { user, logout } = useAuth();
-  const router = useRouter();
+  const router           = useRouter();
 
   const initials = user?.name
     ? user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
@@ -27,22 +27,28 @@ export default function ProfileScreen() {
     <LinearGradient colors={['#050514', '#0D0D2B', '#050514']} style={styles.bg}>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <Text style={styles.pageTitle}>Mi perfil</Text>
+
         <View style={styles.avatarSection}>
           <LinearGradient colors={Colors.Gradients.admin as any} style={styles.avatar}>
             <Text style={styles.avatarTxt}>{initials}</Text>
           </LinearGradient>
           <Text style={styles.name}>{user?.name}</Text>
           <Text style={styles.email}>{user?.email}</Text>
-          <View style={styles.badge}>
-            <Shield size={13} color={C.adminGold} />
-            <Text style={styles.badgeTxt}>Administrador</Text>
+          <View style={styles.rolesRow}>
+            {user?.roles.map(role => (
+              <View key={role} style={styles.badge}>
+                <Shield size={11} color={C.adminGold} />
+                <Text style={styles.badgeTxt}>{role}</Text>
+              </View>
+            ))}
           </View>
         </View>
+
         <View style={styles.infoCard}>
           {[
-            { label: 'ID de admin', value: user?.id ?? '—' },
-            { label: 'Rol',         value: 'Administrador' },
-            { label: 'Estado',      value: 'Activo'        },
+            { label: 'ID de usuario', value: user?.id ?? '—' },
+            { label: 'Roles',         value: user?.roles.join(', ') ?? '—' },
+            { label: 'Estado',        value: 'Activo' },
           ].map((item, i) => (
             <View key={i} style={[styles.infoRow, i > 0 && styles.rowDivider]}>
               <Text style={styles.infoLabel}>{item.label}</Text>
@@ -50,6 +56,7 @@ export default function ProfileScreen() {
             </View>
           ))}
         </View>
+
         <View style={styles.menuCard}>
           <TouchableOpacity style={styles.menuRow} onPress={() => router.push('/(admin)/history')}>
             <View style={styles.menuIcon}><Clock size={18} color={C.adminGold} /></View>
@@ -57,6 +64,7 @@ export default function ProfileScreen() {
             <ChevronRight size={15} color={C.textSubtle} />
           </TouchableOpacity>
         </View>
+
         <TouchableOpacity onPress={handleLogout} style={styles.logoutBtn}>
           <LogOut size={18} color={Colors.Status.error} />
           <Text style={styles.logoutTxt}>Cerrar sesión</Text>
@@ -75,8 +83,9 @@ const styles = StyleSheet.create({
   avatarTxt: { color: '#fff', fontSize: 28, fontWeight: '700' },
   name:      { fontSize: 20, fontWeight: '700', color: C.text },
   email:     { fontSize: 13, color: C.textMuted, marginTop: 4, marginBottom: 10 },
-  badge:     { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20, backgroundColor: `${C.adminGold}15`, borderWidth: 1, borderColor: `${C.adminGold}30` },
-  badgeTxt:  { color: C.adminGold, fontSize: 12, fontWeight: '700' },
+  rolesRow:  { flexDirection: 'row', gap: 8, flexWrap: 'wrap', justifyContent: 'center' },
+  badge:     { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20, backgroundColor: `${C.adminGold}15`, borderWidth: 1, borderColor: `${C.adminGold}30` },
+  badgeTxt:  { color: C.adminGold, fontSize: 11, fontWeight: '700', textTransform: 'capitalize' },
   infoCard:  { backgroundColor: C.surface, borderRadius: 16, borderWidth: 1, borderColor: C.border, marginBottom: 16 },
   infoRow:   { flexDirection: 'row', justifyContent: 'space-between', padding: 14 },
   rowDivider: { borderTopWidth: 1, borderTopColor: C.border },

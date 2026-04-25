@@ -1,6 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { AlertTriangle, CheckCircle, Clock, Shield, TrendingUp, Users } from 'lucide-react-native';
+import { AlertTriangle, CheckCircle, Clock, RefreshCw, Shield, Users, UserCheck } from 'lucide-react-native';
 import React from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Colors } from '../../constants/theme';
@@ -27,13 +27,13 @@ const StatCard = ({ label, value, color, icon: Icon }: any) => (
 );
 
 export default function DashboardScreen() {
-  const { user }                          = useAuth();
-  const { logs, employees, alerts }       = useMockData();
-  const router                            = useRouter();
+  const { user }                      = useAuth();
+  const { logs, employees, alerts }   = useMockData();
+  const router                        = useRouter();
 
-  const granted     = logs.filter(l => l.access_result === 'GRANTED').length;
-  const pending     = alerts.filter(a => !a.resolved).length;
-  const successRate = logs.length > 0 ? Math.round((granted / logs.length) * 100) : 0;
+  const granted        = logs.filter(l => l.access_result === 'GRANTED').length;
+  const pending        = alerts.filter(a => !a.resolved).length;
+  const activeEmployees = employees.filter(e => e.is_active).length;
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -60,10 +60,10 @@ export default function DashboardScreen() {
 
       <Text style={styles.sectionTitle}>RESUMEN DEL SISTEMA</Text>
       <View style={styles.statsGrid}>
-        <StatCard label="Empleados"     value={employees.length}  color={C.blueNeon}  icon={Users}         />
+        <StatCard label="Emp. activos"  value={activeEmployees}  color={C.blueNeon}  icon={UserCheck}     />
         <StatCard label="Accesos hoy"   value={granted}           color={C.greenNeon} icon={CheckCircle}   />
         <StatCard label="Alertas"       value={pending}           color={C.redAlert}  icon={AlertTriangle} />
-        <StatCard label="Tasa de éxito" value={`${successRate}%`} color={C.adminGold} icon={TrendingUp}    />
+        <StatCard label="Total emp."    value={employees.length}  color={C.adminGold} icon={Users}         />
       </View>
 
       <Text style={styles.sectionTitle}>ACTIVIDAD RECIENTE</Text>
@@ -92,8 +92,8 @@ const styles = StyleSheet.create({
   shieldWrap: { width: 44, height: 44, borderRadius: 22, backgroundColor: `${C.adminGold}15`, borderWidth: 1, borderColor: `${C.adminGold}30`, alignItems: 'center', justifyContent: 'center' },
   adminBadge: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 10, borderRadius: 12, marginBottom: 16, gap: 8 },
   adminBadgeText: { color: '#050514', fontWeight: '800', fontSize: 11, letterSpacing: 2 },
-  quickBtn: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: C.surface, borderRadius: 12, borderWidth: 1, borderColor: `${C.purpleNeon}25`, paddingHorizontal: 14, paddingVertical: 12, marginBottom: 24 },
-  quickTxt:   { flex: 1, color: C.textMuted, fontSize: 13 },
+  quickBtn:  { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: C.surface, borderRadius: 12, borderWidth: 1, borderColor: `${C.purpleNeon}25`, paddingHorizontal: 14, paddingVertical: 12, marginBottom: 24 },
+  quickTxt:  { flex: 1, color: C.textMuted, fontSize: 13 },
   quickArrow: { color: C.purpleNeon, fontSize: 20 },
   sectionTitle: { color: C.textMuted, fontSize: 11, letterSpacing: 2, marginBottom: 14, fontWeight: '600' },
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 28 },

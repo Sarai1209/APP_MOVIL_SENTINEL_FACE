@@ -1,25 +1,23 @@
 import React, { createContext, ReactNode, useContext, useState } from 'react';
 
-export type UserRole = 'admin' | null;
-
 export interface AuthUser {
   id:    string;
   name:  string;
   email: string;
-  role:  UserRole;
+  roles: string[];
 }
 
 interface AuthContextType {
   user:            AuthUser | null;
   isAuthenticated: boolean;
-  role:            UserRole;
+  hasRole:         (role: string) => boolean;
   login:           (email: string, password: string) => Promise<void>;
   logout:          () => void;
 }
 
 const VALID_CREDENTIALS = [
-  { email: 'admin@sentinel.com',    password: 'admin123',    name: 'Admin Sentinel',  id: '1' },
-  { email: 'director@sentinel.com', password: 'director123', name: 'Director General', id: '2' },
+  { email: 'admin@sentinel.com',    password: 'admin123',    name: 'Admin Sentinel',   id: '1', roles: ['admin'] },
+  { email: 'director@sentinel.com', password: 'director123', name: 'Director General', id: '2', roles: ['admin'] },
 ];
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -34,13 +32,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       c => c.email === email.toLowerCase().trim() && c.password === password
     );
     if (!match) throw new Error('Credenciales inválidas. Verifica tu correo y contraseña.');
-    setUser({ id: match.id, name: match.name, email: match.email, role: 'admin' });
+    setUser({ id: match.id, name: match.name, email: match.email, roles: match.roles });
   };
+
+  const hasRole = (role: string) => user?.roles.includes(role) ?? false;
 
   const logout = () => setUser(null);
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, role: user?.role ?? null, login, logout }}>
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, hasRole, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

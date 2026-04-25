@@ -1,7 +1,7 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, CheckCircle, Clock, XCircle } from 'lucide-react-native';
-import React, { useState } from 'react';
+import { ArrowLeft, CheckCircle, XCircle } from 'lucide-react-native';
+import React from 'react';
 import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Colors } from '../../constants/theme';
 import { AccessLog, useMockData } from '../../context/MockDataContext';
@@ -9,13 +9,14 @@ import { AccessLog, useMockData } from '../../context/MockDataContext';
 const C = Colors.dark;
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleString('es-CO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false });
+  return new Date(iso).toLocaleString('es-CO', {
+    day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false,
+  });
 }
 
 export default function HistoryScreen() {
-  const router        = useRouter();
-  const { logs }      = useMockData();
-  const [liveMode, setLiveMode] = useState(true);
+  const router   = useRouter();
+  const { logs } = useMockData();
 
   const granted = logs.filter(l => l.access_result === 'GRANTED').length;
   const denied  = logs.filter(l => l.access_result === 'DENIED').length;
@@ -23,19 +24,13 @@ export default function HistoryScreen() {
   return (
     <LinearGradient colors={['#050514', '#0D0D2B', '#050514']} style={styles.bg}>
       <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-            <ArrowLeft size={20} color={C.text} />
-          </TouchableOpacity>
-          <View>
-            <Text style={styles.title}>Historial de accesos</Text>
-            <Text style={styles.sub}>{logs.length} registros totales</Text>
-          </View>
-        </View>
-        <TouchableOpacity style={[styles.liveBtn, liveMode && styles.liveBtnActive]} onPress={() => setLiveMode(p => !p)}>
-          <Clock size={14} color={liveMode ? C.greenNeon : C.textMuted} />
-          <Text style={[styles.liveTxt, liveMode && styles.liveTxtActive]}>{liveMode ? 'EN VIVO' : 'PAUSADO'}</Text>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <ArrowLeft size={20} color={C.text} />
         </TouchableOpacity>
+        <View>
+          <Text style={styles.title}>Historial de accesos</Text>
+          <Text style={styles.sub}>{logs.length} registros totales</Text>
+        </View>
       </View>
 
       <View style={styles.summary}>
@@ -66,11 +61,16 @@ export default function HistoryScreen() {
               </View>
               <View style={styles.info}>
                 <Text style={styles.name}>{item.full_name ?? 'Desconocido'}</Text>
-                <Text style={styles.meta}>{formatDate(item.event_time)}{item.liveness !== 'UNKNOWN' && ` · ${item.liveness}`}</Text>
+                <Text style={styles.meta}>
+                  {formatDate(item.event_time)}
+                  {item.liveness !== 'UNKNOWN' && ` · ${item.liveness}`}
+                </Text>
               </View>
               <View style={styles.right}>
                 <Text style={[styles.result, { color }]}>{ok ? 'ACCESO' : 'DENEGADO'}</Text>
-                {item.confidence > 0 && <Text style={styles.confidence}>{(item.confidence * 100).toFixed(0)}%</Text>}
+                {item.confidence > 0 && (
+                  <Text style={styles.confidence}>{(item.confidence * 100).toFixed(0)}%</Text>
+                )}
               </View>
             </View>
           );
@@ -81,28 +81,23 @@ export default function HistoryScreen() {
 }
 
 const styles = StyleSheet.create({
-  bg: { flex: 1 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingTop: 60, paddingBottom: 12 },
-  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  backBtn:    { padding: 4 },
-  title:      { fontSize: 18, fontWeight: '700', color: C.text },
-  sub:        { fontSize: 11, color: C.textSubtle, marginTop: 2 },
-  liveBtn:       { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, backgroundColor: C.surface, borderWidth: 1, borderColor: C.border },
-  liveBtnActive: { backgroundColor: 'rgba(0,229,160,0.1)', borderColor: 'rgba(0,229,160,0.35)' },
-  liveTxt:       { color: C.textMuted, fontSize: 11, fontWeight: '700' },
-  liveTxtActive: { color: C.greenNeon },
+  bg:     { flex: 1 },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingTop: 60, paddingBottom: 12 },
+  backBtn: { padding: 4 },
+  title:   { fontSize: 18, fontWeight: '700', color: C.text },
+  sub:     { fontSize: 11, color: C.textSubtle, marginTop: 2 },
   summary: { flexDirection: 'row', gap: 10, paddingHorizontal: 16, marginBottom: 16 },
   summaryCard: { flex: 1, backgroundColor: C.surface, borderRadius: 12, borderWidth: 1, paddingVertical: 12, alignItems: 'center' },
   summaryVal:  { fontSize: 22, fontWeight: '800' },
   summaryLbl:  { color: C.textMuted, fontSize: 11, marginTop: 2 },
-  list:     { paddingHorizontal: 16, paddingBottom: 32 },
-  row:      { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 13 },
-  divider:  { borderTopWidth: 1, borderTopColor: C.border },
-  iconBox:  { width: 38, height: 38, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  info:     { flex: 1 },
-  name:     { color: C.text, fontSize: 14, fontWeight: '500' },
-  meta:     { color: C.textMuted, fontSize: 11, marginTop: 3 },
-  right:    { alignItems: 'flex-end' },
+  list:    { paddingHorizontal: 16, paddingBottom: 32 },
+  row:     { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 13 },
+  divider: { borderTopWidth: 1, borderTopColor: C.border },
+  iconBox: { width: 38, height: 38, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  info:    { flex: 1 },
+  name:    { color: C.text, fontSize: 14, fontWeight: '500' },
+  meta:    { color: C.textMuted, fontSize: 11, marginTop: 3 },
+  right:   { alignItems: 'flex-end' },
   result:     { fontSize: 11, fontWeight: '700' },
   confidence: { color: C.textSubtle, fontSize: 11, marginTop: 3 },
 });

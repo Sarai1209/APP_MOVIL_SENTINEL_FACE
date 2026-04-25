@@ -14,12 +14,7 @@ const SettingRow = ({ icon: Icon, color, label, value, onPress, isSwitch, switch
     </View>
     <Text style={styles.rowLabel}>{label}</Text>
     {isSwitch
-      ? <Switch
-          value={switchValue}
-          onValueChange={onToggle}
-          thumbColor="white"
-          trackColor={{ true: C.adminGold, false: C.border }}
-        />
+      ? <Switch value={switchValue} onValueChange={onToggle} thumbColor="white" trackColor={{ true: C.adminGold, false: C.border }} />
       : <View style={styles.rowRight}>
           {value && <Text style={styles.rowValue}>{value}</Text>}
           <ChevronRight size={16} color={C.textMuted} />
@@ -30,7 +25,7 @@ const SettingRow = ({ icon: Icon, color, label, value, onPress, isSwitch, switch
 
 export default function SettingsScreen() {
   const { user, logout } = useAuth();
-  const router = useRouter();
+  const router           = useRouter();
   const [notifications, setNotifications] = useState(true);
   const [darkMode,       setDarkMode]      = useState(true);
   const [sensitivity,    setSensitivity]   = useState<'Alta' | 'Media' | 'Baja'>('Alta');
@@ -40,25 +35,14 @@ export default function SettingsScreen() {
   };
 
   const handleLogout = () => {
-    Alert.alert(
-      'Cerrar sesión',
-      '¿Estás seguro de que quieres cerrar sesión del panel de administración?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Cerrar sesión', style: 'destructive',
-          onPress: () => { logout(); router.replace('/'); },
-        },
-      ]
-    );
-  };
-
-  const handleRoles = () => {
-    Alert.alert('Gestión de roles', 'Esta funcionalidad requiere conexión al servidor de administración.');
+    Alert.alert('Cerrar sesión', '¿Estás seguro de que quieres cerrar sesión del panel de administración?', [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Cerrar sesión', style: 'destructive', onPress: () => { logout(); router.replace('/'); } },
+    ]);
   };
 
   const handleAudit = () => {
-    Alert.alert('Registros de auditoría', 'Consulta los registros completos desde el panel web o el endpoint GET /api/audit.');
+    Alert.alert('Registros de auditoría', 'Consulta los registros completos desde el endpoint GET /api/audit del backend.');
   };
 
   return (
@@ -77,23 +61,14 @@ export default function SettingsScreen() {
 
       <Text style={styles.section}>SISTEMA</Text>
       <View style={styles.group}>
-        <SettingRow
-          icon={Bell} color={C.blueNeon} label="Notificaciones de alerta"
-          isSwitch switchValue={notifications} onToggle={setNotifications}
-        />
-        <SettingRow
-          icon={Moon} color={C.purpleNeon} label="Modo oscuro"
-          isSwitch switchValue={darkMode} onToggle={setDarkMode}
-        />
-        <SettingRow
-          icon={Sliders} color={C.adminGold} label="Sensibilidad de reconocimiento"
-          value={sensitivity} onPress={cycleSensitivity}
-        />
+        <SettingRow icon={Bell}    color={C.blueNeon}   label="Notificaciones de alerta" isSwitch switchValue={notifications} onToggle={setNotifications} />
+        <SettingRow icon={Moon}    color={C.purpleNeon}  label="Modo oscuro"              isSwitch switchValue={darkMode}       onToggle={setDarkMode} />
+        <SettingRow icon={Sliders} color={C.adminGold}   label="Sensibilidad de reconocimiento" value={sensitivity} onPress={cycleSensitivity} />
       </View>
 
       <Text style={styles.section}>SEGURIDAD</Text>
       <View style={styles.group}>
-        <SettingRow icon={Shield} color={C.greenNeon} label="Gestión de roles" onPress={handleRoles} />
+        <SettingRow icon={Shield} color={C.greenNeon} label="Gestión de roles"       onPress={() => router.push('/(admin)/roles')} />
         <SettingRow icon={Shield} color={C.redAlert}  label="Registros de auditoría" onPress={handleAudit} />
       </View>
 
@@ -106,33 +81,21 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: C.background },
-  content:   { padding: 20, paddingTop: 60, paddingBottom: 40 },
-  title:     { color: C.text, fontSize: 22, fontWeight: '700', marginBottom: 20 },
-  profileCard: {
-    flexDirection: 'row', alignItems: 'center', gap: 14,
-    backgroundColor: C.surface, borderRadius: 16,
-    borderWidth: 1, borderColor: C.border,
-    padding: 16, marginBottom: 28,
-  },
+  container:    { flex: 1, backgroundColor: C.background },
+  content:      { padding: 20, paddingTop: 60, paddingBottom: 40 },
+  title:        { color: C.text, fontSize: 22, fontWeight: '700', marginBottom: 20 },
+  profileCard:  { flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: C.surface, borderRadius: 16, borderWidth: 1, borderColor: C.border, padding: 16, marginBottom: 28 },
   avatar:       { width: 50, height: 50, borderRadius: 25, backgroundColor: `${C.adminGold}20`, justifyContent: 'center', alignItems: 'center' },
   avatarText:   { color: C.adminGold, fontSize: 20, fontWeight: '700' },
   profileName:  { color: C.text, fontSize: 16, fontWeight: '600' },
   profileEmail: { color: C.textMuted, fontSize: 13, marginTop: 2 },
-  section: { color: C.textMuted, fontSize: 10, fontWeight: '700', letterSpacing: 2, marginBottom: 10, marginTop: 4 },
-  group: {
-    backgroundColor: C.surface, borderRadius: 16,
-    borderWidth: 1, borderColor: C.border, marginBottom: 22, overflow: 'hidden',
-  },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderBottomWidth: 1, borderBottomColor: C.border },
-  iconWrap:  { width: 34, height: 34, borderRadius: 9, justifyContent: 'center', alignItems: 'center' },
-  rowLabel:  { flex: 1, color: C.text, fontSize: 15 },
-  rowRight:  { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  rowValue:  { color: C.textMuted, fontSize: 13 },
-  logoutBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
-    borderWidth: 1, borderColor: `${C.redAlert}40`,
-    borderRadius: 14, paddingVertical: 16, marginTop: 8,
-  },
-  logoutText: { color: C.redAlert, fontSize: 15, fontWeight: '600' },
+  section:      { color: C.textMuted, fontSize: 10, fontWeight: '700', letterSpacing: 2, marginBottom: 10, marginTop: 4 },
+  group:        { backgroundColor: C.surface, borderRadius: 16, borderWidth: 1, borderColor: C.border, marginBottom: 22, overflow: 'hidden' },
+  row:          { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderBottomWidth: 1, borderBottomColor: C.border },
+  iconWrap:     { width: 34, height: 34, borderRadius: 9, justifyContent: 'center', alignItems: 'center' },
+  rowLabel:     { flex: 1, color: C.text, fontSize: 15 },
+  rowRight:     { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  rowValue:     { color: C.textMuted, fontSize: 13 },
+  logoutBtn:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, borderWidth: 1, borderColor: `${C.redAlert}40`, borderRadius: 14, paddingVertical: 16, marginTop: 8 },
+  logoutText:   { color: C.redAlert, fontSize: 15, fontWeight: '600' },
 });

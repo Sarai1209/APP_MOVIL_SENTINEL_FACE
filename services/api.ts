@@ -1,11 +1,12 @@
 import axios from 'axios';
 
-// Emulador Android: 10.0.2.2  |  Dispositivo físico: tu IP local ej. 192.168.1.X
-export const BASE_URL = 'http://10.0.2.2:5000/api';
+// URL del backend desplegado en Railway.
+// Cambia este valor por la URL que te asignó Railway en Settings → Domains.
+export const BASE_URL = 'https://tu-proyecto.up.railway.app/api';
 
 const client = axios.create({
   baseURL: BASE_URL,
-  timeout: 20000,
+  timeout: 30000,
 });
 
 export const api = {
@@ -23,8 +24,8 @@ export const api = {
       headers: { 'Content-Type': 'multipart/form-data' },
     }),
 
-  deleteEmployee: (id: number, adminId: number | string) =>
-    client.delete(`/employees/${id}`, { params: { admin_id: adminId } }),
+  deactivateEmployee: (id: number, usuarioId: number | string) =>
+    client.patch(`/employees/${id}/deactivate`, { usuario_id: usuarioId }),
 
   getLogs: (params?: { result?: string; limit?: number }) =>
     client.get('/logs', { params }),
@@ -35,8 +36,8 @@ export const api = {
   getAlert: (id: number) =>
     client.get(`/alerts/${id}`),
 
-  resolveAlert: (id: number, adminId: number | string) =>
-    client.patch(`/alerts/${id}/resolve`, { admin_id: adminId }),
+  resolveAlert: (id: number, usuarioId: number | string) =>
+    client.patch(`/alerts/${id}/resolve`, { usuario_id: usuarioId }),
 
   getAudit: (limit = 50) =>
     client.get('/audit', { params: { limit } }),
@@ -45,4 +46,16 @@ export const api = {
     client.post('/recognize', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     }),
+
+  getRoles: () =>
+    client.get('/roles'),
+
+  createRole: (name: string, description: string, usuarioId: number | string) =>
+    client.post('/roles', { name, description, requestor_id: usuarioId }),
+
+  deactivateRole: (id: number, usuarioId: number | string) =>
+    client.patch(`/roles/${id}/deactivate`, { requestor_id: usuarioId }),
+
+  activateRole: (id: number, usuarioId: number | string) =>
+    client.patch(`/roles/${id}/activate`, { requestor_id: usuarioId }),
 };
