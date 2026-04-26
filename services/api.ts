@@ -1,17 +1,30 @@
 import axios from 'axios';
+import * as SecureStore from 'expo-secure-store';
 
-// URL del backend desplegado en Railway.
-// Cambia este valor por la URL que te asignó Railway en Settings → Domains.
-export const BASE_URL = 'https://tu-proyecto.up.railway.app/api';
+const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? 'https://sentinelfacebackend-production.up.railway.app/api';
+
+export const TOKEN_KEY = 'sentinel_access_token';
 
 const client = axios.create({
   baseURL: BASE_URL,
   timeout: 30000,
 });
 
+// Adjunta el token JWT en cada petición automáticamente
+client.interceptors.request.use(async config => {
+  const token = await SecureStore.getItemAsync(TOKEN_KEY);
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
 export const api = {
   login: (email: string, password: string) =>
     client.post('/auth/login', { email, password }),
+
+  refreshToken: () =>
+    client.post('/auth/refresh'),
 
   getEmployees: () =>
     client.get('/employees'),

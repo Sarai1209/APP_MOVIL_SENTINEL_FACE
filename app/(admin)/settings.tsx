@@ -35,10 +35,17 @@ export default function SettingsScreen() {
   };
 
   const handleLogout = () => {
-    Alert.alert('Cerrar sesión', '¿Estás seguro de que quieres cerrar sesión del panel de administración?', [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Cerrar sesión', style: 'destructive', onPress: () => { logout(); router.replace('/'); } },
-    ]);
+    Alert.alert(
+      'Cerrar sesión',
+      '¿Estás seguro de que quieres cerrar sesión del panel de administración?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Cerrar sesión', style: 'destructive',
+          onPress: async () => { await logout(); router.replace('/'); },
+        },
+      ]
+    );
   };
 
   const handleAudit = () => {

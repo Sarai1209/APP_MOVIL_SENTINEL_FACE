@@ -19,7 +19,10 @@ export default function ProfileScreen() {
   const handleLogout = () => {
     Alert.alert('Cerrar sesión', '¿Estás seguro de que quieres salir?', [
       { text: 'Cancelar', style: 'cancel' },
-      { text: 'Salir', style: 'destructive', onPress: () => { logout(); router.replace('/'); } },
+      {
+        text: 'Salir', style: 'destructive',
+        onPress: async () => { await logout(); router.replace('/'); },
+      },
     ]);
   };
 

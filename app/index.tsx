@@ -1,5 +1,5 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { Redirect, useRouter } from 'expo-router';
 import { Eye, EyeOff, Fingerprint, Lock, Mail, ShieldCheck } from 'lucide-react-native';
 import React, { useEffect, useRef, useState } from 'react';
 import {
@@ -11,13 +11,13 @@ import { Colors } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
 
 export default function LoginScreen() {
-  const router      = useRouter();
-  const { login }   = useAuth();
-  const [email,     setEmail]    = useState('');
-  const [password,  setPassword] = useState('');
-  const [showPass,  setShowPass] = useState(false);
-  const [loading,   setLoading]  = useState(false);
-  const [error,     setError]    = useState('');
+  const router                  = useRouter();
+  const { login, isAuthenticated, isLoading } = useAuth();
+  const [email,    setEmail]    = useState('');
+  const [password, setPassword] = useState('');
+  const [showPass, setShowPass] = useState(false);
+  const [loading,  setLoading]  = useState(false);
+  const [error,    setError]    = useState('');
   const faceAnim = useRef(new Animated.Value(0.3)).current;
 
   useEffect(() => {
@@ -29,6 +29,11 @@ export default function LoginScreen() {
     ).start();
   }, []);
 
+  // Si ya hay sesión activa, redirigir directo al dashboard
+  if (!isLoading && isAuthenticated) {
+    return <Redirect href="/(admin)/dashboard" />;
+  }
+
   const handleLogin = async () => {
     if (!email || !password) { setError('Ingresa tus credenciales.'); return; }
     setError('');
@@ -37,7 +42,7 @@ export default function LoginScreen() {
       await login(email, password);
       router.replace('/(admin)/dashboard');
     } catch (e: any) {
-      setError(e.message ?? 'Credenciales inválidas.');
+      setError(e?.response?.data?.message ?? e.message ?? 'Credenciales inválidas.');
     } finally {
       setLoading(false);
     }
@@ -96,7 +101,9 @@ export default function LoginScreen() {
                   onChangeText={setPassword}
                 />
                 <TouchableOpacity onPress={() => setShowPass(p => !p)}>
-                  {showPass ? <Eye color="white" size={18} /> : <EyeOff color="rgba(255,255,255,0.4)" size={18} />}
+                  {showPass
+                    ? <Eye color="white" size={18} />
+                    : <EyeOff color="rgba(255,255,255,0.4)" size={18} />}
                 </TouchableOpacity>
               </View>
             </View>
@@ -137,8 +144,8 @@ const styles = StyleSheet.create({
   title:    { fontSize: 26, fontWeight: '300', color: 'white', letterSpacing: 6, textAlign: 'center', marginBottom: 5 },
   subtitle: { color: Colors.dark.adminGold, fontSize: 9, letterSpacing: 3, textAlign: 'center', marginBottom: 40, opacity: 0.8 },
   loginCard: { width: '100%', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 20, padding: 25, borderWidth: 0.5, borderColor: 'rgba(255,255,255,0.15)' },
-  inputWrapper: { marginBottom: 25 },
-  label:        { color: 'rgba(191,0,255,0.8)', fontSize: 9, marginBottom: 10, fontWeight: '600', letterSpacing: 2 },
+  inputWrapper:   { marginBottom: 25 },
+  label:          { color: 'rgba(191,0,255,0.8)', fontSize: 9, marginBottom: 10, fontWeight: '600', letterSpacing: 2 },
   inputContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.4)', borderRadius: 12, paddingHorizontal: 15, height: 52, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
   input:          { flex: 1, color: 'white', fontSize: 14 },
   iconStyle:      { marginRight: 12 },
