@@ -1,6 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { AlertTriangle, CheckCircle, Clock, RefreshCw, Shield, Users, UserCheck } from 'lucide-react-native';
+import { AlertTriangle, CheckCircle, Clock, Shield, UserCheck, Users } from 'lucide-react-native';
 import React from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Colors } from '../../constants/theme';
@@ -17,8 +17,8 @@ function timeAgo(iso: string) {
 }
 
 const StatCard = ({ label, value, color, icon: Icon }: any) => (
-  <View style={[styles.statCard, { borderColor: `${color}30` }]}>
-    <LinearGradient colors={[`${color}15`, `${color}05`]} style={styles.statGradient}>
+  <View style={[styles.statCard, { borderColor: color, backgroundColor: `${color}12` }]}>
+    <LinearGradient colors={[`${color}30`, `${color}08`]} style={styles.statGradient}>
       <Icon size={20} color={color} />
       <Text style={[styles.statValue, { color }]}>{value}</Text>
       <Text style={styles.statLabel}>{label}</Text>
@@ -27,16 +27,17 @@ const StatCard = ({ label, value, color, icon: Icon }: any) => (
 );
 
 export default function DashboardScreen() {
-  const { user }                      = useAuth();
-  const { logs, employees, alerts }   = useMockData();
-  const router                        = useRouter();
+  const { user }                    = useAuth();
+  const { logs, employees, alerts } = useMockData();
+  const router                      = useRouter();
 
-  const granted        = logs.filter(l => l.access_result === 'GRANTED').length;
-  const pending        = alerts.filter(a => !a.resolved).length;
+  const granted         = logs.filter(l => l.access_result === 'GRANTED').length;
+  const pending         = alerts.filter(a => !a.resolved).length;
   const activeEmployees = employees.filter(e => e.is_active).length;
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+
       <View style={styles.header}>
         <View>
           <Text style={styles.greeting}>Bienvenido,</Text>
@@ -47,8 +48,12 @@ export default function DashboardScreen() {
         </View>
       </View>
 
-      <LinearGradient colors={Colors.Gradients.admin as any} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.adminBadge}>
-        <Shield size={16} color="#050514" />
+      <LinearGradient
+        colors={['#C3A0F0', '#A080D8']}
+        start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+        style={styles.adminBadge}
+      >
+        <Shield size={16} color="#FFFFFF" />
         <Text style={styles.adminBadgeText}>PANEL DE ADMINISTRACIÓN</Text>
       </LinearGradient>
 
@@ -60,25 +65,34 @@ export default function DashboardScreen() {
 
       <Text style={styles.sectionTitle}>RESUMEN DEL SISTEMA</Text>
       <View style={styles.statsGrid}>
-        <StatCard label="Emp. activos"  value={activeEmployees}  color={C.blueNeon}  icon={UserCheck}     />
+        <StatCard label="Activos"  value={activeEmployees}  color={C.blueNeon}  icon={UserCheck}     />
         <StatCard label="Accesos hoy"   value={granted}           color={C.greenNeon} icon={CheckCircle}   />
         <StatCard label="Alertas"       value={pending}           color={C.redAlert}  icon={AlertTriangle} />
-        <StatCard label="Total emp."    value={employees.length}  color={C.adminGold} icon={Users}         />
+        <StatCard label="Total usuarios"    value={employees.length}  color={C.adminGold} icon={Users}         />
       </View>
 
       <Text style={styles.sectionTitle}>ACTIVIDAD RECIENTE</Text>
-      {logs.slice(0, 8).map(item => (
-        <View key={item.log_id} style={styles.activityRow}>
-          <View style={[styles.dot, { backgroundColor: item.access_result === 'GRANTED' ? Colors.Status.success : Colors.Status.error }]} />
-          <View style={{ flex: 1 }}>
-            <Text style={styles.activityName}>{item.full_name ?? 'Desconocido'}</Text>
-            <Text style={styles.activityTime}>{timeAgo(item.event_time)}</Text>
+      {logs.slice(0, 8).map(item => {
+        const isGranted   = item.access_result === 'GRANTED';
+        const initials    = (item.full_name ?? 'DS').split(' ').map((w: string) => w[0]).join('').slice(0,2).toUpperCase();
+        const avatarColor = isGranted ? Colors.Status.success : Colors.Status.error;
+        return (
+          <View key={item.log_id} style={styles.activityRow}>
+            <View style={[styles.avatar, { backgroundColor: `${avatarColor}20`, borderColor: `${avatarColor}40` }]}>
+              <Text style={[styles.avatarTxt, { color: avatarColor }]}>{initials}</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.activityName}>{item.full_name ?? 'Desconocido'}</Text>
+              <Text style={styles.activityTime}>{timeAgo(item.event_time)}</Text>
+            </View>
+            <View style={[styles.statusChip, { backgroundColor: `${avatarColor}18`, borderColor: `${avatarColor}35` }]}>
+              <Text style={[styles.activityStatus, { color: avatarColor }]}>
+                {isGranted ? 'Acceso' : 'Denegado'}
+              </Text>
+            </View>
           </View>
-          <Text style={[styles.activityStatus, { color: item.access_result === 'GRANTED' ? Colors.Status.success : Colors.Status.error }]}>
-            {item.access_result === 'GRANTED' ? 'Acceso' : 'Denegado'}
-          </Text>
-        </View>
-      ))}
+        );
+      })}
     </ScrollView>
   );
 }
@@ -86,24 +100,54 @@ export default function DashboardScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: C.background },
   content:   { padding: 20, paddingTop: 60, paddingBottom: 30 },
-  header:    { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  greeting:  { color: C.textMuted, fontSize: 13 },
-  name:      { color: C.text, fontSize: 22, fontWeight: '700' },
-  shieldWrap: { width: 44, height: 44, borderRadius: 22, backgroundColor: `${C.adminGold}15`, borderWidth: 1, borderColor: `${C.adminGold}30`, alignItems: 'center', justifyContent: 'center' },
-  adminBadge: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 10, borderRadius: 12, marginBottom: 16, gap: 8 },
-  adminBadgeText: { color: '#050514', fontWeight: '800', fontSize: 11, letterSpacing: 2 },
-  quickBtn:  { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: C.surface, borderRadius: 12, borderWidth: 1, borderColor: `${C.purpleNeon}25`, paddingHorizontal: 14, paddingVertical: 12, marginBottom: 24 },
-  quickTxt:  { flex: 1, color: C.textMuted, fontSize: 13 },
+
+  header:   { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  greeting: { color: C.textMuted, fontSize: 13 },
+  name:     { color: C.text, fontSize: 22, fontWeight: '700' },
+  shieldWrap: {
+    width: 44, height: 44, borderRadius: 22,
+    backgroundColor: 'rgba(195,160,240,0.15)',
+    borderWidth: 1, borderColor: 'rgba(195,160,240,0.35)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+
+  adminBadge: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    paddingVertical: 14, borderRadius: 14, marginBottom: 16, gap: 8,
+  },
+  adminBadgeText: { color: '#FFFFFF', fontWeight: '800', fontSize: 12, letterSpacing: 2 },
+
+  quickBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: C.surface, borderRadius: 12,
+    borderWidth: 1, borderColor: 'rgba(195,160,240,0.25)',
+    paddingHorizontal: 14, paddingVertical: 12, marginBottom: 28,
+  },
+  quickTxt:   { flex: 1, color: C.textMuted, fontSize: 13 },
   quickArrow: { color: C.purpleNeon, fontSize: 20 },
+
   sectionTitle: { color: C.textMuted, fontSize: 11, letterSpacing: 2, marginBottom: 14, fontWeight: '600' },
-  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 28 },
-  statCard:  { width: '47%', borderRadius: 16, borderWidth: 1, overflow: 'hidden' },
+
+  statsGrid:    { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 28 },
+  statCard:     { width: '47%', borderRadius: 16, borderWidth: 1, overflow: 'hidden' },
   statGradient: { padding: 16, gap: 6 },
-  statValue: { fontSize: 26, fontWeight: '800' },
-  statLabel: { color: C.textMuted, fontSize: 12 },
-  activityRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: C.border },
-  dot:            { width: 8, height: 8, borderRadius: 4 },
+  statValue:    { fontSize: 26, fontWeight: '800' },
+  statLabel:    { color: C.textMuted, fontSize: 12 },
+
+  activityRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: C.border,
+  },
+  avatar: {
+    width: 38, height: 38, borderRadius: 19,
+    alignItems: 'center', justifyContent: 'center', borderWidth: 1,
+  },
+  avatarTxt:      { fontSize: 13, fontWeight: '700' },
   activityName:   { color: C.text, fontSize: 14, fontWeight: '500' },
   activityTime:   { color: C.textMuted, fontSize: 12, marginTop: 2 },
+  statusChip: {
+    paddingHorizontal: 10, paddingVertical: 4,
+    borderRadius: 8, borderWidth: 1,
+  },
   activityStatus: { fontSize: 12, fontWeight: '600' },
 });
