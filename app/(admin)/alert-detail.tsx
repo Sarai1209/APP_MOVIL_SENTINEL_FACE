@@ -1,7 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { AlertTriangle, CheckCircle, X } from 'lucide-react-native';
-import React from 'react';
 import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Colors } from '../../constants/theme';
 import { useAuth } from '../../context/AuthContext';
@@ -29,7 +28,7 @@ export default function AlertDetailScreen() {
 
   if (!alert) {
     return (
-      <LinearGradient colors={['#050514', '#0D0D2B', '#050514']} style={styles.center}>
+      <LinearGradient colors={['#12101E', '#1A1630', '#12101E']} style={styles.center}>
         <Text style={{ color: C.textMuted }}>Alerta no encontrada</Text>
         <TouchableOpacity onPress={() => router.back()} style={styles.backLink}>
           <Text style={styles.backLinkTxt}>Volver</Text>
@@ -58,7 +57,7 @@ export default function AlertDetailScreen() {
   };
 
   return (
-    <LinearGradient colors={['#050514', '#0D0D2B', '#050514']} style={styles.bg}>
+    <LinearGradient colors={['#12101E', '#1A1630', '#12101E']} style={styles.bg}>
       <View style={styles.topBar}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <X size={22} color={C.text} />
@@ -155,6 +154,6 @@ const styles = StyleSheet.create({
   descText:  { color: C.text, fontSize: 14, lineHeight: 22 },
   resolveBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: Colors.Status.success, borderRadius: 14, paddingVertical: 15, marginBottom: 12 },
   resolveTxt: { color: '#050514', fontSize: 16, fontWeight: '700' },
-  resolvedBanner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: 'rgba(0,229,160,0.1)', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(0,229,160,0.25)', paddingVertical: 14 },
+  resolvedBanner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: 'rgba(123,196,168,0.14)', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(123,196,168,0.35)', paddingVertical: 14 },
   resolvedTxt:    { color: Colors.Status.success, fontSize: 14, fontWeight: '600' },
 });

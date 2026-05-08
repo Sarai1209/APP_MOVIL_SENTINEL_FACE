@@ -44,15 +44,15 @@ export default function AlertsScreen() {
   const [filter, setFilter] = useState<FilterKey>('all');
 
   const displayed = alerts.filter(a => {
-    if (filter === 'resolved')        return a.resolved;
-    if (filter === 'all')             return !a.resolved;
+    if (filter === 'resolved') return a.resolved;
+    if (filter === 'all')      return !a.resolved;
     return !a.resolved && a.alert_type === filter;
   });
 
   const unread = alerts.filter(a => !a.resolved).length;
 
   return (
-    <LinearGradient colors={['#050514', '#0D0D2B', '#050514']} style={styles.bg}>
+    <LinearGradient colors={['#12101E', '#1A1630', '#12101E']} style={styles.bg}>
       <View style={styles.header}>
         <View>
           <Text style={styles.title}>Alertas</Text>
@@ -84,7 +84,7 @@ export default function AlertsScreen() {
             const color = severityColor(alert.severity);
             return (
               <TouchableOpacity key={alert.alert_id}
-                style={[styles.card, !alert.resolved && styles.cardUnread]}
+                style={[styles.card, { borderColor: color, backgroundColor: `${color}10` }]}
                 onPress={() => router.push(`/(admin)/alert-detail?id=${alert.alert_id}`)}
                 activeOpacity={0.8}>
                 <View style={[styles.iconWrap, { backgroundColor: `${color}18` }]}>
@@ -123,12 +123,11 @@ const styles = StyleSheet.create({
   filtersScroll: { flexGrow: 0 },
   filtersWrap:   { paddingHorizontal: 20, gap: 8, paddingBottom: 12 },
   filterBtn:       { paddingHorizontal: 16, paddingVertical: 7, borderRadius: 20, backgroundColor: C.surface, borderWidth: 1, borderColor: C.border },
-  filterBtnActive: { backgroundColor: 'rgba(255,0,255,0.1)', borderColor: 'rgba(255,0,255,0.35)' },
+  filterBtnActive: { backgroundColor: 'rgba(195,160,240,0.14)', borderColor: 'rgba(195,160,240,0.40)' },
   filterTxt:       { color: C.textMuted, fontSize: 13 },
   filterTxtActive: { color: C.pinkNeon, fontWeight: '600' },
   list: { paddingHorizontal: 16, paddingBottom: 32, gap: 10 },
-  card: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, backgroundColor: C.surface, borderRadius: 14, borderWidth: 1, borderColor: C.border, padding: 13 },
-  cardUnread: { borderColor: 'rgba(255,0,255,0.18)', backgroundColor: 'rgba(255,0,255,0.04)' },
+  card: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, borderRadius: 14, borderWidth: 1, padding: 13 },
   iconWrap:   { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   body:       { flex: 1 },
   alertTitle: { color: C.text, fontSize: 13, fontWeight: '600', marginBottom: 3 },
