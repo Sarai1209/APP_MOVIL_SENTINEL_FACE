@@ -145,7 +145,7 @@ const styles = StyleSheet.create({
   subtitle: { color: Colors.dark.adminGold, fontSize: 9, letterSpacing: 3, textAlign: 'center', marginBottom: 40, opacity: 0.8 },
   loginCard: { width: '100%', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 20, padding: 25, borderWidth: 0.5, borderColor: 'rgba(255,255,255,0.15)' },
   inputWrapper:   { marginBottom: 25 },
-  label:          { color: 'rgba(191,0,255,0.8)', fontSize: 9, marginBottom: 10, fontWeight: '600', letterSpacing: 2 },
+  label:          { color: 'rgba(195,160,240,0.9)', fontSize: 9, marginBottom: 10, fontWeight: '600', letterSpacing: 2 },
   inputContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.4)', borderRadius: 12, paddingHorizontal: 15, height: 52, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
   input:          { flex: 1, color: 'white', fontSize: 14 },
   iconStyle:      { marginRight: 12 },

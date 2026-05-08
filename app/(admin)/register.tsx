@@ -38,7 +38,7 @@ export default function RegisterScreen() {
 
   const handleRegister = async () => {
     if (!name.trim()) { Alert.alert('Campo requerido', 'Ingresa el nombre completo.'); return; }
-    if (!photoUri)    { Alert.alert('Foto requerida', 'Captura o selecciona una foto del empleado.'); return; }
+    if (!photoUri)    { Alert.alert('Foto requerida', 'Captura o selecciona una foto del usuario.'); return; }
     setLoading(true);
     await new Promise(res => setTimeout(res, 1200));
     addEmployee({
@@ -54,13 +54,13 @@ export default function RegisterScreen() {
 
   if (success) {
     return (
-      <LinearGradient colors={['#050514', '#0D0D2B', '#050514']} style={styles.bg}>
+      <LinearGradient colors={['#12101E', '#1A1630', '#12101E']} style={styles.bg}>
         <View style={styles.successContainer}>
           <CheckCircle size={64} color={Colors.Status.success} />
-          <Text style={styles.successTitle}>Empleado registrado</Text>
+          <Text style={styles.successTitle}>Usuario registrado</Text>
           <Text style={styles.successSub}>{name} fue agregado al sistema de control de acceso facial.</Text>
           <TouchableOpacity style={styles.doneBtn} onPress={() => router.back()}>
-            <Text style={styles.doneTxt}>Volver a empleados</Text>
+            <Text style={styles.doneTxt}>Volver a Usuarios</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.newBtn} onPress={() => { setName(''); setDocumentId(''); setPhotoUri(null); setSuccess(false); }}>
             <Text style={styles.newTxt}>Registrar otro</Text>
@@ -71,12 +71,12 @@ export default function RegisterScreen() {
   }
 
   return (
-    <LinearGradient colors={['#050514', '#0D0D2B', '#050514']} style={styles.bg}>
+    <LinearGradient colors={['#12101E', '#1A1630', '#12101E']} style={styles.bg}>
       <View style={styles.topBar}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <X size={22} color={C.text} />
         </TouchableOpacity>
-        <Text style={styles.topTitle}>Registrar empleado</Text>
+        <Text style={styles.topTitle}>Registrar usuario</Text>
         <View style={{ width: 38 }} />
       </View>
 
@@ -120,7 +120,7 @@ export default function RegisterScreen() {
 
         <TouchableOpacity style={[styles.registerBtn, loading && { opacity: 0.6 }]} onPress={handleRegister} disabled={loading}>
           <LinearGradient colors={Colors.Gradients.admin as any} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.btnGradient}>
-            {loading ? <ActivityIndicator color="white" /> : <Text style={styles.btnTxt}>Registrar empleado</Text>}
+            {loading ? <ActivityIndicator color="white" /> : <Text style={styles.btnTxt}>Registrar usuario</Text>}
           </LinearGradient>
         </TouchableOpacity>
       </ScrollView>
@@ -142,10 +142,10 @@ const styles = StyleSheet.create({
   changePhoto: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.55)', flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6, paddingVertical: 10 },
   changeTxt:   { color: 'white', fontSize: 13 },
   field:     { marginBottom: 20 },
-  label:     { color: 'rgba(140,120,255,0.8)', fontSize: 9, fontWeight: '700', letterSpacing: 2, marginBottom: 8 },
+  label:     { color: 'rgba(195,160,240,0.9)', fontSize: 9, fontWeight: '700', letterSpacing: 2, marginBottom: 8 },
   inputWrap: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: C.surface, borderWidth: 1, borderColor: C.borderStrong, borderRadius: 12, paddingHorizontal: 14, height: 50 },
   input:     { flex: 1, color: C.text, fontSize: 14 },
-  infoBox:   { backgroundColor: 'rgba(0,180,255,0.08)', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(0,180,255,0.2)', padding: 14, marginBottom: 28 },
+  infoBox:   { backgroundColor: 'rgba(144,208,240,0.10)', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(144,208,240,0.25)', padding: 14, marginBottom: 28 },
   infoTxt:   { color: C.blueNeon, fontSize: 12, lineHeight: 18, opacity: 0.9 },
   registerBtn:  { width: '100%', height: 54 },
   btnGradient:  { flex: 1, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },

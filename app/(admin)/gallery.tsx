@@ -73,7 +73,7 @@ export default function GalleryScreen() {
   const spoofing = logs.filter(l => l.liveness === 'SPOOFING').length;
 
   return (
-    <LinearGradient colors={['#050514', '#0D0D2B', '#050514']} style={styles.bg}>
+    <LinearGradient colors={['#12101E', '#1A1630', '#12101E']} style={styles.bg}>
       <View style={styles.header}>
         <View>
           <Text style={styles.title}>Galería de accesos</Text>
