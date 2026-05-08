@@ -23,7 +23,7 @@ export default function AdminLayout() {
     >
       <Tabs.Screen name="dashboard" options={{ title: 'Panel',     tabBarIcon: ({ color }) => <Shield    size={24} color={color} /> }} />
       <Tabs.Screen name="gallery"   options={{ title: 'Galería',   tabBarIcon: ({ color }) => <Camera    size={24} color={color} /> }} />
-      <Tabs.Screen name="users"     options={{ title: 'Empleados', tabBarIcon: ({ color }) => <Users     size={24} color={color} /> }} />
+      <Tabs.Screen name="users"     options={{ title: 'Usuarios', tabBarIcon: ({ color }) => <Users     size={24} color={color} /> }} />
       <Tabs.Screen name="reports"   options={{ title: 'Reportes',  tabBarIcon: ({ color }) => <BarChart3 size={24} color={color} /> }} />
       <Tabs.Screen name="alerts"    options={{ title: 'Alertas',   tabBarIcon: ({ color }) => <Bell      size={24} color={color} /> }} />
       <Tabs.Screen name="settings"  options={{ title: 'Config',    tabBarIcon: ({ color }) => <Settings  size={24} color={color} /> }} />

@@ -1,13 +1,11 @@
 import { Platform } from 'react-native';
 
-type GradientTuple = [string, string];  
+type GradientTuple = [string, string];
 
-//Base
-const pinkNeon       = '#FF00FF';
-const purpleNeon     = '#9D00FF';
-const backgroundDark = '#050514';
- 
-//Colores 
+const pastelPink   = '#E8A0C8';
+const pastelPurple = '#C3A0F0';
+const bgDark       = '#12101E';
+
 export const Colors = {
   light: {
     text:            '#11181C',
@@ -17,61 +15,53 @@ export const Colors = {
     tabIconDefault:  '#687076',
     tabIconSelected: '#0a7ea4',
   },
- 
+
   dark: {
-    //Identidad
-    pinkNeon,
-    purpleNeon,
-    blueNeon:    '#00B4FF',
-    greenNeon:   '#00E5A0',
-    adminGold:   '#BF00FF',
-    redAlert:    '#FF3D71',
-    yellowWarn:  '#FFAA00',
- 
-    //Texto
-    text:        '#FFFFFF',
-    textMuted:   'rgba(255,255,255,0.4)',
-    textSubtle:  'rgba(255,255,255,0.2)',
- 
-    //Superficies
-    background:  backgroundDark,
-    surface:     'rgba(255,255,255,0.03)',
-    cardBg:      '#FFFFFF08',
-    inputBg:     '#00000066',
-    overlay:     '#00000066',
- 
-    //Bordes
-    border:       'rgba(255,255,255,0.08)',
-    borderStrong: 'rgba(255,255,255,0.15)',
- 
-    // ab bar
-    tint:            pinkNeon,
-    icon:            '#9BA1A6',
-    tabIconDefault:  '#444455',
-    tabIconSelected: pinkNeon,
+    pinkNeon:    pastelPink,
+    purpleNeon:  pastelPurple,
+    blueNeon:    '#90D0F0',
+    greenNeon:   '#7BC4A8',
+    adminGold:   '#E8C87A',
+    redAlert:    '#D49090',
+    yellowWarn:  '#E8D080',
+
+    text:        '#EDE8F5',
+    textMuted:   '#C8C0D8',
+    textSubtle:  '#8A8498',
+
+    background:  bgDark,
+    surface:     '#1E1B2E',
+    cardBg:      '#252235',
+    inputBg:     'rgba(0,0,0,0.35)',
+    overlay:     'rgba(18,16,30,0.85)',
+
+    border:       '#3A3550',
+    borderStrong: '#6B6480',
+
+    tint:            pastelPink,
+    icon:            '#8A8498',
+    tabIconDefault:  '#3A3550',
+    tabIconSelected: pastelPink,
   },
- 
-  //Gradientes 
+
   Gradients: {
-    primary:   [purpleNeon, pinkNeon]                  as GradientTuple,
-    admin:     ['#BF00FF',  '#8000FF']             as GradientTuple,
-    success:   ['#00E5A0',  '#00B4FF']             as GradientTuple,
-    danger:    ['#FF3D71',  '#FF6B35']             as GradientTuple,
-    overlay:   ['#0505141A', '#05051499']          as GradientTuple,
-    adminDash: ['rgba(255,215,0,0.08)',  'rgba(255,140,0,0.04)']  as GradientTuple,
-    card:      ['rgba(157,0,255,0.08)', 'rgba(255,0,255,0.04)']   as GradientTuple,
+    primary:   [pastelPurple, pastelPink]                             as GradientTuple,
+    admin:     ['#C3A0F0',    '#A080D8']                              as GradientTuple,
+    success:   ['#7BC4A8',    '#90D0F0']                              as GradientTuple,
+    danger:    ['#D49090',    '#E0A880']                              as GradientTuple,
+    overlay:   ['rgba(18,16,30,0.1)',   'rgba(18,16,30,0.7)']        as GradientTuple,
+    adminDash: ['rgba(195,160,240,0.14)', 'rgba(195,160,240,0.05)']  as GradientTuple,
+    card:      ['rgba(195,160,240,0.12)', 'rgba(232,160,200,0.06)']  as GradientTuple,
   },
- 
-  // Estados de UI (alertas, badges)
+
   Status: {
-    success: '#00E5A0',
-    warning: '#FFAA00',
-    error:   '#FF3D71',
-    info:    '#00B4FF',
+    success: '#7BC4A8',
+    warning: '#E8D080',
+    error:   '#D49090',
+    info:    '#90D0F0',
   },
 };
- 
-//Tipografía por plataforma 
+
 export const Fonts = Platform.select({
   ios: {
     sans:    'system-ui',
