@@ -1,5 +1,5 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { AlertTriangle, CheckCircle, ShieldAlert, XCircle } from 'lucide-react-native';
+import { CheckCircle, ShieldAlert, XCircle } from 'lucide-react-native';
 import React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Colors } from '../../constants/theme';

@@ -22,7 +22,7 @@ export default function HistoryScreen() {
   const denied  = logs.filter(l => l.access_result === 'DENIED').length;
 
   return (
-    <LinearGradient colors={['#050514', '#0D0D2B', '#050514']} style={styles.bg}>
+    <LinearGradient colors={['#12101E', '#1A1630', '#12101E']} style={styles.bg}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <ArrowLeft size={20} color={C.text} />
