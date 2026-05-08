@@ -40,7 +40,7 @@ export default function UsersScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>
-          Empleados ({employees.filter(e => e.is_active).length} activos)
+          Usuarios ({employees.filter(e => e.is_active).length} activos)
         </Text>
         <View style={styles.headerActions}>
           <TouchableOpacity

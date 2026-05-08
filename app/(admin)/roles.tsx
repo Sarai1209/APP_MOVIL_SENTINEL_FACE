@@ -41,7 +41,7 @@ export default function RolesScreen() {
   };
 
   return (
-    <LinearGradient colors={['#050514', '#0D0D2B', '#050514']} style={styles.bg}>
+    <LinearGradient colors={['#12101E', '#1A1630', '#12101E']} style={styles.bg}>
       <View style={styles.topBar}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <ArrowLeft size={22} color={C.text} />
@@ -75,7 +75,7 @@ export default function RolesScreen() {
               <Text style={[styles.roleName, !item.is_active && styles.textInactive]}>{item.name}</Text>
               {item.description ? <Text style={styles.roleDesc} numberOfLines={1}>{item.description}</Text> : null}
             </View>
-            <View style={[styles.statusBadge, { backgroundColor: item.is_active ? 'rgba(0,229,160,0.12)' : 'rgba(255,61,113,0.12)' }]}>
+            <View style={[styles.statusBadge, { backgroundColor: item.is_active ? 'rgba(123,196,168,0.16)' : 'rgba(212,144,144,0.14)' }]}>
               <Text style={[styles.statusText, { color: item.is_active ? Colors.Status.success : Colors.Status.error }]}>
                 {item.is_active ? 'Activo' : 'Inactivo'}
               </Text>
@@ -143,7 +143,7 @@ const styles = StyleSheet.create({
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
   modalCard:    { backgroundColor: C.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 24, paddingBottom: 40 },
   modalTitle:   { color: C.text, fontSize: 18, fontWeight: '700', marginBottom: 20 },
-  modalLabel:   { color: 'rgba(140,120,255,0.8)', fontSize: 9, fontWeight: '700', letterSpacing: 2, marginBottom: 8 },
+  modalLabel:   { color: 'rgba(195,160,240,0.9)', fontSize: 9, fontWeight: '700', letterSpacing: 2, marginBottom: 8 },
   modalInput:   { backgroundColor: C.background, borderWidth: 1, borderColor: C.borderStrong, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, color: C.text, fontSize: 14, marginBottom: 16 },
   modalActions: { flexDirection: 'row', gap: 12, marginTop: 8 },
   cancelBtn:    { flex: 1, borderWidth: 1, borderColor: C.border, borderRadius: 12, paddingVertical: 13, alignItems: 'center' },
