@@ -1,34 +1,110 @@
-import { LinearGradient } from 'expo-linear-gradient';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { AlertTriangle, CheckCircle, X } from 'lucide-react-native';
-import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { Colors } from '../../constants/theme';
-import { useAuth } from '../../context/AuthContext';
-import { useMockData } from '../../context/MockDataContext';
+import { LinearGradient } from "expo-linear-gradient";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { AlertTriangle, CheckCircle, X } from "lucide-react-native";
+import React, { useEffect, useState } from "react";
+import {
+    ActivityIndicator,
+    Alert,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from "react-native";
+import { Colors } from "../../constants/theme";
+import { api } from "../../services/api";
+import { useAuthStore } from "../../store/authStore";
 
 const C = Colors.dark;
 
 function severityColor(s: string) {
-  if (s === 'CRITICAL' || s === 'HIGH') return Colors.Status.error;
-  if (s === 'MEDIUM') return Colors.Status.warning;
+  if (s === "CRITICAL" || s === "HIGH") return Colors.Status.error;
+  if (s === "MEDIUM") return Colors.Status.warning;
   return Colors.Status.info;
 }
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleString('es-CO', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
+  return new Date(iso).toLocaleString("es-CO", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
 }
 
 export default function AlertDetailScreen() {
-  const { id }                      = useLocalSearchParams<{ id: string }>();
-  const { user }                    = useAuth();
-  const { alerts, resolveAlert }    = useMockData();
-  const router                      = useRouter();
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const user = useAuthStore((s) => s.user);
+  const router = useRouter();
+  const [alert, setAlert] = useState<any | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const alert = alerts.find(a => a.alert_id === Number(id));
+  useEffect(() => {
+    const loadAlert = async () => {
+      try {
+        const res = await api.getAlert(Number(id));
+        setAlert(res.data.alert ?? null);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (id) loadAlert();
+  }, [id]);
+
+  const handleResolve = () => {
+    if (!alert) return;
+    Alert.alert(
+      "Resolver alerta",
+      "¿Confirmas que esta alerta ha sido atendida?",
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Resolver",
+          style: "default",
+          onPress: async () => {
+            try {
+              await api.resolveAlert(alert.alert_id, user?.id ?? "");
+              setAlert((prev) =>
+                prev
+                  ? {
+                      ...prev,
+                      resolved: true,
+                      resolved_by: user?.name,
+                      resolved_at: new Date().toISOString(),
+                    }
+                  : prev,
+              );
+              router.back();
+            } catch (error) {
+              console.error(error);
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  if (loading) {
+    return (
+      <LinearGradient
+        colors={["#12101E", "#1A1630", "#12101E"]}
+        style={styles.center}
+      >
+        <ActivityIndicator size="large" color={Colors.dark.adminGold} />
+      </LinearGradient>
+    );
+  }
 
   if (!alert) {
     return (
-      <LinearGradient colors={['#12101E', '#1A1630', '#12101E']} style={styles.center}>
+      <LinearGradient
+        colors={["#12101E", "#1A1630", "#12101E"]}
+        style={styles.center}
+      >
         <Text style={{ color: C.textMuted }}>Alerta no encontrada</Text>
         <TouchableOpacity onPress={() => router.back()} style={styles.backLink}>
           <Text style={styles.backLinkTxt}>Volver</Text>
@@ -39,25 +115,11 @@ export default function AlertDetailScreen() {
 
   const color = severityColor(alert.severity);
 
-  const handleResolve = () => {
-    Alert.alert(
-      'Resolver alerta',
-      '¿Confirmas que esta alerta ha sido atendida?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Resolver', style: 'default',
-          onPress: () => {
-            resolveAlert(alert.alert_id, user?.name ?? 'Admin');
-            router.back();
-          },
-        },
-      ]
-    );
-  };
-
   return (
-    <LinearGradient colors={['#12101E', '#1A1630', '#12101E']} style={styles.bg}>
+    <LinearGradient
+      colors={["#12101E", "#1A1630", "#12101E"]}
+      style={styles.bg}
+    >
       <View style={styles.topBar}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <X size={22} color={C.text} />
@@ -66,16 +128,32 @@ export default function AlertDetailScreen() {
         <View style={{ width: 38 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={[styles.typeCard, { borderColor: `${color}30` }]}>
-          <LinearGradient colors={[`${color}20`, `${color}05`]} style={styles.typeGradient}>
-            {alert.resolved
-              ? <CheckCircle size={32} color={Colors.Status.success} />
-              : <AlertTriangle size={32} color={color} />
-            }
-            <Text style={[styles.typeText, { color }]}>{alert.alert_type?.replace(/_/g, ' ')}</Text>
-            <View style={[styles.severityPill, { backgroundColor: `${color}20`, borderColor: `${color}40` }]}>
-              <Text style={[styles.severityTxt, { color }]}>{alert.severity}</Text>
+          <LinearGradient
+            colors={[`${color}20`, `${color}05`]}
+            style={styles.typeGradient}
+          >
+            {alert.resolved ? (
+              <CheckCircle size={32} color={Colors.Status.success} />
+            ) : (
+              <AlertTriangle size={32} color={color} />
+            )}
+            <Text style={[styles.typeText, { color }]}>
+              {alert.alert_type?.replace(/_/g, " ")}
+            </Text>
+            <View
+              style={[
+                styles.severityPill,
+                { backgroundColor: `${color}20`, borderColor: `${color}40` },
+              ]}
+            >
+              <Text style={[styles.severityTxt, { color }]}>
+                {alert.severity}
+              </Text>
             </View>
           </LinearGradient>
         </View>
@@ -83,8 +161,17 @@ export default function AlertDetailScreen() {
         <View style={styles.infoCard}>
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Estado</Text>
-            <Text style={[styles.infoValue, { color: alert.resolved ? Colors.Status.success : Colors.Status.warning }]}>
-              {alert.resolved ? 'Resuelta' : 'Pendiente'}
+            <Text
+              style={[
+                styles.infoValue,
+                {
+                  color: alert.resolved
+                    ? Colors.Status.success
+                    : Colors.Status.warning,
+                },
+              ]}
+            >
+              {alert.resolved ? "Resuelta" : "Pendiente"}
             </Text>
           </View>
           <View style={[styles.infoRow, styles.rowDivider]}>
@@ -94,7 +181,9 @@ export default function AlertDetailScreen() {
           {alert.resolved_at && (
             <View style={[styles.infoRow, styles.rowDivider]}>
               <Text style={styles.infoLabel}>Resuelta el</Text>
-              <Text style={styles.infoValue}>{formatDate(alert.resolved_at)}</Text>
+              <Text style={styles.infoValue}>
+                {formatDate(alert.resolved_at)}
+              </Text>
             </View>
           )}
           {alert.resolved_by && (
@@ -131,29 +220,110 @@ export default function AlertDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  bg:     { flex: 1 },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 60, paddingBottom: 12 },
-  backBtn:  { width: 38, height: 38, alignItems: 'center', justifyContent: 'center' },
-  topTitle: { color: C.text, fontSize: 17, fontWeight: '600' },
-  backLink:    { marginTop: 16 },
+  bg: { flex: 1 },
+  center: { flex: 1, alignItems: "center", justifyContent: "center" },
+  topBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingTop: 60,
+    paddingBottom: 12,
+  },
+  backBtn: {
+    width: 38,
+    height: 38,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  topTitle: { color: C.text, fontSize: 17, fontWeight: "600" },
+  backLink: { marginTop: 16 },
   backLinkTxt: { color: C.pinkNeon, fontSize: 15 },
-  scroll:   { paddingHorizontal: 20, paddingBottom: 40 },
-  typeCard: { borderRadius: 20, borderWidth: 1, overflow: 'hidden', marginBottom: 20 },
-  typeGradient: { padding: 24, alignItems: 'center', gap: 10 },
-  typeText:    { color: C.text, fontSize: 18, fontWeight: '700', textAlign: 'center' },
-  severityPill: { paddingHorizontal: 14, paddingVertical: 5, borderRadius: 20, borderWidth: 1 },
-  severityTxt:  { fontSize: 12, fontWeight: '700' },
-  infoCard:  { backgroundColor: C.surface, borderRadius: 16, borderWidth: 1, borderColor: C.border, marginBottom: 16 },
-  infoRow:   { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 14 },
+  scroll: { paddingHorizontal: 20, paddingBottom: 40 },
+  typeCard: {
+    borderRadius: 20,
+    borderWidth: 1,
+    overflow: "hidden",
+    marginBottom: 20,
+  },
+  typeGradient: { padding: 24, alignItems: "center", gap: 10 },
+  typeText: {
+    color: C.text,
+    fontSize: 18,
+    fontWeight: "700",
+    textAlign: "center",
+  },
+  severityPill: {
+    paddingHorizontal: 14,
+    paddingVertical: 5,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  severityTxt: { fontSize: 12, fontWeight: "700" },
+  infoCard: {
+    backgroundColor: C.surface,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: C.border,
+    marginBottom: 16,
+  },
+  infoRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 14,
+  },
   rowDivider: { borderTopWidth: 1, borderTopColor: C.border },
-  infoLabel:  { color: C.textMuted, fontSize: 13 },
-  infoValue:  { color: C.text, fontSize: 13, fontWeight: '500', flexShrink: 1, textAlign: 'right', marginLeft: 10 },
-  descCard:  { backgroundColor: C.surface, borderRadius: 16, borderWidth: 1, borderColor: C.border, padding: 16, marginBottom: 24 },
-  descTitle: { color: C.textMuted, fontSize: 11, fontWeight: '700', letterSpacing: 1.5, marginBottom: 10 },
-  descText:  { color: C.text, fontSize: 14, lineHeight: 22 },
-  resolveBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: Colors.Status.success, borderRadius: 14, paddingVertical: 15, marginBottom: 12 },
-  resolveTxt: { color: '#050514', fontSize: 16, fontWeight: '700' },
-  resolvedBanner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: 'rgba(123,196,168,0.14)', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(123,196,168,0.35)', paddingVertical: 14 },
-  resolvedTxt:    { color: Colors.Status.success, fontSize: 14, fontWeight: '600' },
+  infoLabel: { color: C.textMuted, fontSize: 13 },
+  infoValue: {
+    color: C.text,
+    fontSize: 13,
+    fontWeight: "500",
+    flexShrink: 1,
+    textAlign: "right",
+    marginLeft: 10,
+  },
+  descCard: {
+    backgroundColor: C.surface,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: C.border,
+    padding: 16,
+    marginBottom: 24,
+  },
+  descTitle: {
+    color: C.textMuted,
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 1.5,
+    marginBottom: 10,
+  },
+  descText: { color: C.text, fontSize: 14, lineHeight: 22 },
+  resolveBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    backgroundColor: Colors.Status.success,
+    borderRadius: 14,
+    paddingVertical: 15,
+    marginBottom: 12,
+  },
+  resolveTxt: { color: "#050514", fontSize: 16, fontWeight: "700" },
+  resolvedBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: "rgba(123,196,168,0.14)",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(123,196,168,0.35)",
+    paddingVertical: 14,
+  },
+  resolvedTxt: {
+    color: Colors.Status.success,
+    fontSize: 14,
+    fontWeight: "600",
+  },
 });

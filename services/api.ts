@@ -1,9 +1,11 @@
-import axios from 'axios';
-import * as SecureStore from 'expo-secure-store';
+import axios from "axios";
+import * as SecureStore from "expo-secure-store";
 
-const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? 'https://sentinelfacebackend-production.up.railway.app/api';
+const BASE_URL =
+  process.env.EXPO_PUBLIC_API_URL ??
+  "https://sentinelfacebackend-production.up.railway.app/api";
 
-export const TOKEN_KEY = 'sentinel_access_token';
+export const TOKEN_KEY = "sentinel_access_token";
 
 const client = axios.create({
   baseURL: BASE_URL,
@@ -11,7 +13,7 @@ const client = axios.create({
 });
 
 // Adjunta el token JWT en cada petición automáticamente
-client.interceptors.request.use(async config => {
+client.interceptors.request.use(async (config) => {
   const token = await SecureStore.getItemAsync(TOKEN_KEY);
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -19,52 +21,97 @@ client.interceptors.request.use(async config => {
   return config;
 });
 
+client.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const status = error?.response?.status;
+    const config = error?.config as any;
+
+    if (status === 401 && config && !config._retry) {
+      config._retry = true;
+      try {
+        const { data } = await client.post("/auth/refresh");
+        await SecureStore.setItemAsync(TOKEN_KEY, data.access_token);
+        try {
+          const { useAuthStore } = await import("../store/authStore");
+          useAuthStore.setState({
+            token: data.access_token,
+            isAuthenticated: true,
+          });
+        } catch (innerError) {
+          console.warn(
+            "[api] No se pudo actualizar el store después del refresh",
+            innerError,
+          );
+        }
+        config.headers.Authorization = `Bearer ${data.access_token}`;
+        return client(config);
+      } catch {
+        try {
+          const { useAuthStore } = await import("../store/authStore");
+          await useAuthStore.getState().logout();
+        } catch (innerError) {
+          console.warn(
+            "[api] No se pudo cerrar sesión tras refresh fallido",
+            innerError,
+          );
+        }
+      }
+    }
+
+    if (status === 403) {
+      console.warn(
+        "[api] Acceso prohibido (403):",
+        error?.response?.data?.message,
+      );
+    }
+
+    return Promise.reject(error);
+  },
+);
+
 export const api = {
   login: (email: string, password: string) =>
-    client.post('/auth/login', { email, password }),
+    client.post("/auth/login", { email, password }),
 
-  refreshToken: () =>
-    client.post('/auth/refresh'),
+  refreshToken: () => client.post("/auth/refresh"),
 
-  getEmployees: () =>
-    client.get('/employees'),
+  getEmployees: () => client.get("/employees"),
 
-  getEmployee: (id: number) =>
-    client.get(`/employees/${id}`),
+  getEmployee: (id: number) => client.get(`/employees/${id}`),
 
   createEmployee: (formData: FormData) =>
-    client.post('/employees', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+    client.post("/employees", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
     }),
 
   deactivateEmployee: (id: number, usuarioId: number | string) =>
     client.patch(`/employees/${id}/deactivate`, { usuario_id: usuarioId }),
 
   getLogs: (params?: { result?: string; limit?: number }) =>
-    client.get('/logs', { params }),
+    client.get("/logs", { params }),
 
   getAlerts: (resolved?: 0 | 1) =>
-    client.get('/alerts', { params: resolved !== undefined ? { resolved } : {} }),
+    client.get("/alerts", {
+      params: resolved !== undefined ? { resolved } : {},
+    }),
 
-  getAlert: (id: number) =>
-    client.get(`/alerts/${id}`),
+  getAlert: (id: number) => client.get(`/alerts/${id}`),
 
   resolveAlert: (id: number, usuarioId: number | string) =>
     client.patch(`/alerts/${id}/resolve`, { usuario_id: usuarioId }),
 
-  getAudit: (limit = 50) =>
-    client.get('/audit', { params: { limit } }),
+  getAudit: (limit = 50) => client.get("/audit", { params: { limit } }),
 
   recognize: (formData: FormData) =>
-    client.post('/recognize', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+    client.post("/recognize", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
     }),
 
-  getRoles: () =>
-    client.get('/roles'),
+  getRoles: () => client.get("/roles"),
 
   createRole: (name: string, description: string, usuarioId: number | string) =>
-    client.post('/roles', { name, description, requestor_id: usuarioId }),
+    client.post("/roles", { name, description, requestor_id: usuarioId }),
 
   deactivateRole: (id: number, usuarioId: number | string) =>
     client.patch(`/roles/${id}/deactivate`, { requestor_id: usuarioId }),
