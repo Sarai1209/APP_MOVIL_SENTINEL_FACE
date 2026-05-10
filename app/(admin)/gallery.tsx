@@ -54,6 +54,11 @@ function SnapshotTile({ item }: { item: any }) {
     : spoof
       ? Colors.Status.warning
       : Colors.Status.error;
+  const tileBackground = ok
+    ? "rgba(0, 180, 80, 0.15)"
+    : spoof
+      ? "rgba(220, 160, 0, 0.15)"
+      : "rgba(220, 50, 50, 0.15)";
   const initials = item.full_name
     ? item.full_name
         .split(" ")
@@ -66,7 +71,7 @@ function SnapshotTile({ item }: { item: any }) {
   return (
     <View style={[styles.tile, { width: TILE, height: TILE }]}>
       <View
-        style={[styles.tileInner, { backgroundColor: item.snapshot_color }]}
+        style={[styles.tileInner, { backgroundColor: tileBackground }]}
       >
         <Text style={styles.tileInitials}>{initials}</Text>
         <View

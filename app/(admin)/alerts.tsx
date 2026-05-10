@@ -54,15 +54,20 @@ function timeAgo(iso: string) {
 export default function AlertsScreen() {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
-  const [alerts, setAlerts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<FilterKey>("all");
+  const [activeAlerts,   setActiveAlerts]   = useState<any[]>([]);
+  const [resolvedAlerts, setResolvedAlerts] = useState<any[]>([]);
+  const [loading,        setLoading]        = useState(true);
+  const [filter,         setFilter]         = useState<FilterKey>("all");
 
   useEffect(() => {
     const loadAlerts = async () => {
       try {
-        const res = await api.getAlerts();
-        setAlerts(res.data.alerts ?? []);
+        const [activeRes, resolvedRes] = await Promise.all([
+          api.getAlerts(0),
+          api.getAlerts(1),
+        ]);
+        setActiveAlerts(activeRes.data.alerts ?? []);
+        setResolvedAlerts(resolvedRes.data.alerts ?? []);
       } catch (error) {
         console.error(error);
       } finally {
@@ -72,24 +77,26 @@ export default function AlertsScreen() {
     loadAlerts();
   }, []);
 
-  const displayed = alerts.filter((a) => {
-    if (filter === "resolved") return a.resolved;
-    if (filter === "all") return !a.resolved;
-    return !a.resolved && a.alert_type === filter;
-  });
+  const displayed =
+    filter === "resolved"
+      ? resolvedAlerts
+      : filter === "all"
+        ? activeAlerts
+        : activeAlerts.filter((a) => a.alert_type === filter);
 
-  const unread = alerts.filter((a) => !a.resolved).length;
+  const unread = activeAlerts.length;
 
   const resolveAlert = async (alert_id: number) => {
     try {
       await api.resolveAlert(alert_id, user?.id ?? "");
-      setAlerts((prev) =>
-        prev.map((a) =>
-          a.alert_id === alert_id
-            ? { ...a, resolved: true, resolved_by: user?.name }
-            : a,
-        ),
-      );
+      const resolved = activeAlerts.find((a) => a.alert_id === alert_id);
+      if (resolved) {
+        setActiveAlerts((prev) => prev.filter((a) => a.alert_id !== alert_id));
+        setResolvedAlerts((prev) => [
+          { ...resolved, resolved: true, resolved_by: user?.name },
+          ...prev,
+        ]);
+      }
     } catch (error) {
       console.error(error);
     }

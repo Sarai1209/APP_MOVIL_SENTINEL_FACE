@@ -48,7 +48,6 @@ export const useAuthStore = create<AuthState>()(
           roles: data.roles ?? [],
         };
 
-        await SecureStore.setItemAsync(TOKEN_KEY, data.access_token);
         set({ token: data.access_token, user, isAuthenticated: true });
       },
 
@@ -71,7 +70,6 @@ export const useAuthStore = create<AuthState>()(
               isLoading: false,
             });
           } else {
-            SecureStore.setItemAsync(TOKEN_KEY, state.token).catch(() => {});
             useAuthStore.setState({
               isAuthenticated: !!state.user,
               isLoading: false,
