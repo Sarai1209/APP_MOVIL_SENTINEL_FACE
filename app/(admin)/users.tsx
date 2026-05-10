@@ -188,7 +188,7 @@ export default function UsersScreen() {
                 {item.is_active ? "Activo" : "Inactivo"}
               </Text>
             </View>
-            {item.is_active && (
+            {item.is_active ? (
               <TouchableOpacity
                 onPress={() =>
                   handleDeactivate(item.employee_id, item.full_name)
@@ -197,7 +197,7 @@ export default function UsersScreen() {
               >
                 <UserMinus size={16} color={C.redAlert} />
               </TouchableOpacity>
-            )}
+            ) : null}
           </View>
         )}
       />

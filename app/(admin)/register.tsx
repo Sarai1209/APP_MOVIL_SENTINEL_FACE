@@ -41,7 +41,7 @@ export default function RegisterScreen() {
         return;
       }
       const res = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ['images'],
         quality: 0.8,
         allowsEditing: true,
         aspect: [1, 1],
@@ -50,7 +50,7 @@ export default function RegisterScreen() {
       return;
     }
     const res = await ImagePicker.launchCameraAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       quality: 0.8,
       allowsEditing: true,
       aspect: [1, 1],
@@ -85,12 +85,10 @@ export default function RegisterScreen() {
     try {
       await api.createEmployee(formData);
       setSuccess(true);
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      Alert.alert(
-        "Error",
-        "No se pudo registrar el usuario. Intenta de nuevo.",
-      );
+      const msg = error?.response?.data?.message || "No se pudo registrar el usuario. Intenta de nuevo.";
+      Alert.alert("Error", msg);
     } finally {
       setLoading(false);
     }
