@@ -52,10 +52,11 @@ export default function LoginScreen() {
     ).start();
   }, []);
 
-  // Si ya hay sesión activa, redirigir directo al dashboard
-  if (!isLoading && isAuthenticated) {
-    return <Redirect href="/(admin)/dashboard" />;
-  }
+  // Forzar siempre a pasar por el login, incluso si había sesión (según lo solicitado)
+  useEffect(() => {
+    // Si queremos obligar siempre al login, limpiamos la sesión al montar
+    useAuthStore.getState().logout();
+  }, []);
 
   const handleLogin = async () => {
     if (!email || !password) {

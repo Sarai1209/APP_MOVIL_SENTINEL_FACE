@@ -15,10 +15,13 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
+import { Image } from "expo-image";
 import { Colors } from "../../constants/theme";
 import { api } from "../../services/api";
+import { useAuthStore } from "../../store/authStore";
 
 const C = Colors.dark;
+const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? "https://sentinelfacebackend-production.up.railway.app/api";
 const COL = 3;
 const GAP = 8;
 const SCREEN = Dimensions.get("window").width;
@@ -68,12 +71,24 @@ function SnapshotTile({ item }: { item: any }) {
         .slice(0, 2)
     : "??";
 
+  const token = useAuthStore((s) => s.token);
+
   return (
-    <View style={[styles.tile, { width: TILE, height: TILE }]}>
+    <View style={[styles.tile, { width: TILE }]}>
       <View
-        style={[styles.tileInner, { backgroundColor: tileBackground }]}
+        style={[styles.tileInner, { backgroundColor: C.surface, overflow: "hidden", width: "100%" }]}
       >
         <Text style={styles.tileInitials}>{initials}</Text>
+        <Image 
+          source={{ 
+            uri: `${BASE_URL}/logs/${item.log_id}/image`,
+            headers: token ? { Authorization: `Bearer ${token}` } : undefined
+          }} 
+          style={StyleSheet.absoluteFill} 
+          contentFit="cover"
+          onError={(e) => console.log(`Error cargando imagen log ${item.log_id}:`, e.error)}
+        />
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: tileBackground }]} />
         <View
           style={[
             styles.resultBadge,

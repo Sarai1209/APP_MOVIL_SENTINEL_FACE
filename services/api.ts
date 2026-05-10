@@ -14,9 +14,14 @@ const client = axios.create({
 
 // Adjunta el token JWT en cada petición automáticamente
 client.interceptors.request.use(async (config) => {
-  const token = await SecureStore.getItemAsync(TOKEN_KEY);
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+  try {
+    const { useAuthStore } = await import("../store/authStore");
+    const token = useAuthStore.getState().token;
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  } catch (error) {
+    console.warn("Error obteniendo token del store", error);
   }
   return config;
 });
@@ -27,11 +32,15 @@ client.interceptors.response.use(
     const status = error?.response?.status;
     const config = error?.config as any;
 
+    console.error(`[API ERROR] ${config?.method?.toUpperCase()} ${config?.url} - Status: ${status}`);
+    if (error?.response?.data) {
+      console.error(`[API ERROR DATA]:`, JSON.stringify(error.response.data));
+    }
+
     if (status === 401 && config && !config._retry) {
       config._retry = true;
       try {
         const { data } = await client.post("/auth/refresh");
-        await SecureStore.setItemAsync(TOKEN_KEY, data.access_token);
         try {
           const { useAuthStore } = await import("../store/authStore");
           useAuthStore.setState({
