@@ -38,7 +38,7 @@ export default function UsersScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState("");
-  const [showInactive, setShowInactive] = useState(false);
+  const [showInactive, setShowInactive] = useState(true);
 
   // Modal Crear Usuario Sistema
   const [createModalVisible, setCreateModalVisible] = useState(false);
@@ -363,10 +363,10 @@ export default function UsersScreen() {
         </Text>
         <View style={styles.headerActions}>
           <TouchableOpacity
-            style={[styles.filterBtn, showInactive && styles.filterBtnActive]}
+            style={[styles.filterBtn, !showInactive && styles.filterBtnActive]}
             onPress={() => setShowInactive((p) => !p)}
           >
-            <Text style={[styles.filterTxt, showInactive && styles.filterTxtActive]}>
+            <Text style={[styles.filterTxt, !showInactive && styles.filterTxtActive]}>
               {showInactive ? "Ver activos" : "Ver todos"}
             </Text>
           </TouchableOpacity>
