@@ -149,4 +149,22 @@ export const api = {
 
   activateRole: (id: number, usuarioId: number | string) =>
     client.patch(`/roles/${id}/activate`, { requestor_id: usuarioId }),
+
+  getUsuarios: (includeInactive = true) =>
+    client.get("/usuarios", { params: { include_inactive: includeInactive } }),
+
+  createUsuario: (fullName: string, email: string, password: string, roles: string[], requestorId: number | string) =>
+    client.post("/usuarios", { full_name: fullName, email, password, roles, requestor_id: Number(requestorId) }),
+
+  deactivateUsuario: (id: number, requestorId: number | string) =>
+    client.patch(`/usuarios/${id}/deactivate`, { requestor_id: Number(requestorId) }),
+
+  activateUsuario: (id: number, requestorId: number | string) =>
+    client.patch(`/usuarios/${id}/activate`, { requestor_id: Number(requestorId) }),
+
+  assignUsuarioRole: (usuarioId: number, roleId: number, requestorId: number | string) =>
+    client.post(`/usuarios/${usuarioId}/roles`, { role_id: roleId, requestor_id: Number(requestorId) }),
+
+  removeUsuarioRole: (usuarioId: number, roleId: number, requestorId: number | string) =>
+    client.delete(`/usuarios/${usuarioId}/roles`, { data: { role_id: roleId, requestor_id: Number(requestorId) } }),
 };

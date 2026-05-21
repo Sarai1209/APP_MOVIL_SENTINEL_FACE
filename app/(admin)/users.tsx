@@ -1,69 +1,125 @@
 import { useRouter, useFocusEffect } from "expo-router";
-import { Search, UserMinus, UserPlus } from "lucide-react-native";
-import React, { useState, useCallback } from "react";
+import { Search, UserMinus, UserPlus, Shield, UserCheck, X, Check } from "lucide-react-native";
+import React, { useState, useCallback, useEffect } from "react";
 import {
     ActivityIndicator,
     Alert,
     FlatList,
+    Modal,
     RefreshControl,
     StyleSheet,
     Text,
     TextInput,
     TouchableOpacity,
     View,
+    Switch,
 } from "react-native";
+import { Image } from "expo-image";
 import { Colors } from "../../constants/theme";
-import { api } from "../../services/api";
+import { api, BASE_URL } from "../../services/api";
 import { useAuthStore } from "../../store/authStore";
-import { Employee } from "../../types/domain";
+import { Employee, Usuario, Role } from "../../types/domain";
+import { LinearGradient } from "expo-linear-gradient";
 
 const C = Colors.dark;
 
 export default function UsersScreen() {
   const user = useAuthStore((s) => s.user);
+  const token = useAuthStore((s) => s.token);
   const router = useRouter();
+
+  // Tab: 'employees' (Personal biométrico) o 'system_users' (Usuarios con acceso al sistema)
+  const [activeTab, setActiveTab] = useState<"employees" | "system_users">("employees");
+
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [systemUsers, setSystemUsers] = useState<Usuario[]>([]);
+  const [availableRoles, setAvailableRoles] = useState<Role[]>([]);
+
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState("");
   const [showInactive, setShowInactive] = useState(false);
 
-  const fetchEmployees = useCallback(async (showFullLoading = false) => {
+  // Modal Crear Usuario Sistema
+  const [createModalVisible, setCreateModalVisible] = useState(false);
+  const [createName, setCreateName] = useState("");
+  const [createEmail, setCreateEmail] = useState("");
+  const [createPassword, setCreatePassword] = useState("");
+  const [createRoles, setCreateRoles] = useState<string[]>([]);
+  const [createLoading, setCreateLoading] = useState(false);
+
+  // Modal Gestionar Roles
+  const [rolesModalVisible, setRolesModalVisible] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<Usuario | null>(null);
+  const [updatingRoleId, setUpdatingRoleId] = useState<number | null>(null);
+
+  const fetchAvailableRoles = async () => {
+    try {
+      const res = await api.getRoles(false); // Solo roles activos
+      setAvailableRoles(res.data.roles ?? []);
+    } catch (error) {
+      if (__DEV__) console.error("Error cargando roles disponibles:", error);
+    }
+  };
+
+  const fetchData = useCallback(async (showFullLoading = false) => {
     if (showFullLoading) {
       setLoading(true);
     }
     try {
-      const res = await api.getEmployees();
-      setEmployees(res.data.employees ?? []);
+      if (activeTab === "employees") {
+        const res = await api.getEmployees();
+        setEmployees(res.data.employees ?? []);
+      } else {
+        const res = await api.getUsuarios(true); // include_inactive = true
+        setSystemUsers(res.data.usuarios ?? []);
+      }
     } catch (error) {
       if (__DEV__) console.error(error);
-      Alert.alert("Error", "No se pudieron cargar los usuarios. Intenta de nuevo.");
+      Alert.alert("Error", "No se pudo cargar la información. Intenta de nuevo.");
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
+  }, [activeTab]);
+
+  // Cargar roles del sistema una sola vez al montar
+  useEffect(() => {
+    fetchAvailableRoles();
   }, []);
 
+  // Recarga automática de datos al enfocar la pantalla o cambiar de pestaña
   useFocusEffect(
     useCallback(() => {
-      fetchEmployees(employees.length === 0);
-    }, [fetchEmployees, employees.length])
+      const isEmpty = activeTab === "employees" ? employees.length === 0 : systemUsers.length === 0;
+      fetchData(isEmpty);
+    }, [fetchData, activeTab, employees.length, systemUsers.length])
   );
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    fetchEmployees(false);
-  }, [fetchEmployees]);
+    fetchData(false);
+  }, [fetchData]);
 
-  const filtered = employees.filter((e) => {
+  // Filtrado de listas locales
+  const filteredEmployees = employees.filter((e) => {
     const matchSearch =
       e.full_name.toLowerCase().includes(search.toLowerCase()) ||
-      e.document_id.includes(search);
+      (e.document_id && e.document_id.includes(search));
     const matchStatus = showInactive ? true : e.is_active;
     return matchSearch && matchStatus;
   });
 
-  const handleDeactivate = (id: number, name: string) => {
+  const filteredSystemUsers = systemUsers.filter((u) => {
+    const matchSearch =
+      u.full_name.toLowerCase().includes(search.toLowerCase()) ||
+      u.email.toLowerCase().includes(search.toLowerCase());
+    const matchStatus = showInactive ? true : u.is_active;
+    return matchSearch && matchStatus;
+  });
+
+  // Acciones: Desactivar Empleado (Biométrico)
+  const handleDeactivateEmployee = (id: number, name: string) => {
     Alert.alert(
       "Desactivar empleado",
       `¿Desactivar a ${name}? El registro se conserva por auditoría pero el empleado perderá acceso al sistema.`,
@@ -93,142 +149,601 @@ export default function UsersScreen() {
     );
   };
 
+  // Acciones: Desactivar Usuario del Sistema
+  const handleDeactivateUser = (id: number, name: string) => {
+    Alert.alert(
+      "Desactivar usuario",
+      `¿Desactivar al usuario ${name}? Perderá inmediatamente el acceso de inicio de sesión.`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Desactivar",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await api.deactivateUsuario(id, user?.id ?? "");
+              setSystemUsers((prev) =>
+                prev.map((u) =>
+                  u.usuario_id === id ? { ...u, is_active: false } : u,
+                ),
+              );
+            } catch (error) {
+              if (__DEV__) console.error(error);
+              Alert.alert(
+                "Error",
+                (error as any)?.response?.data?.message ?? "No se pudo desactivar el usuario."
+              );
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  // Acciones: Activar Usuario del Sistema
+  const handleActivateUser = (id: number, name: string) => {
+    Alert.alert(
+      "Activar usuario",
+      `¿Reactivar al usuario ${name}? Podrá iniciar sesión en la aplicación nuevamente.`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Activar",
+          onPress: async () => {
+            try {
+              await api.activateUsuario(id, user?.id ?? "");
+              setSystemUsers((prev) =>
+                prev.map((u) =>
+                  u.usuario_id === id ? { ...u, is_active: true } : u,
+                ),
+              );
+            } catch (error) {
+              if (__DEV__) console.error(error);
+              Alert.alert(
+                "Error",
+                (error as any)?.response?.data?.message ?? "No se pudo activar el usuario."
+              );
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  // Crear Usuario del Sistema
+  const handleCreateUserSubmit = async () => {
+    if (!createName.trim()) {
+      Alert.alert("Campo requerido", "Por favor ingresa el nombre completo.");
+      return;
+    }
+    if (!createEmail.trim()) {
+      Alert.alert("Campo requerido", "Por favor ingresa el correo electrónico.");
+      return;
+    }
+    if (!createPassword.trim()) {
+      Alert.alert("Campo requerido", "Por favor ingresa la contraseña.");
+      return;
+    }
+    setCreateLoading(true);
+    try {
+      await api.createUsuario(
+        createName.trim(),
+        createEmail.trim(),
+        createPassword,
+        createRoles,
+        user?.id ?? "1"
+      );
+      Alert.alert("Éxito", "Usuario del sistema registrado correctamente.");
+      setCreateModalVisible(false);
+      setCreateName("");
+      setCreateEmail("");
+      setCreatePassword("");
+      setCreateRoles([]);
+      fetchData(false);
+    } catch (error) {
+      if (__DEV__) console.error(error);
+      Alert.alert(
+        "Error",
+        (error as any)?.response?.data?.message ?? "No se pudo crear el usuario del sistema."
+      );
+    } finally {
+      setCreateLoading(false);
+    }
+  };
+
+  // Roles checkbox helper para creación
+  const toggleInitialRole = (roleName: string) => {
+    setCreateRoles((prev) =>
+      prev.includes(roleName)
+        ? prev.filter((r) => r !== roleName)
+        : [...prev, roleName]
+    );
+  };
+
+  // Abrir Modal de Roles para un usuario existente
+  const openRolesModal = (u: Usuario) => {
+    setSelectedUser(u);
+    setRolesModalVisible(true);
+  };
+
+  // Asignar / Remover Rol de un usuario existente
+  const toggleUserRole = async (role: Role) => {
+    if (!selectedUser) return;
+    const hasRole = selectedUser.roles.includes(role.name);
+    
+    // Evitar que el administrador se quite su propio rol admin
+    if (hasRole && role.name === "admin" && String(selectedUser.usuario_id) === String(user?.id)) {
+      Alert.alert("Acción inválida", "No puedes remover tu propio rol de administrador.");
+      return;
+    }
+
+    setUpdatingRoleId(role.role_id);
+    try {
+      if (hasRole) {
+        // Remover rol
+        await api.removeUsuarioRole(selectedUser.usuario_id, role.role_id, user?.id ?? "");
+        const updated = selectedUser.roles.filter((r) => r !== role.name);
+        setSelectedUser({ ...selectedUser, roles: updated });
+        setSystemUsers((prev) =>
+          prev.map((u) =>
+            u.usuario_id === selectedUser.usuario_id ? { ...u, roles: updated } : u
+          )
+        );
+      } else {
+        // Asignar rol
+        await api.assignUsuarioRole(selectedUser.usuario_id, role.role_id, user?.id ?? "");
+        const updated = [...selectedUser.roles, role.name];
+        setSelectedUser({ ...selectedUser, roles: updated });
+        setSystemUsers((prev) =>
+          prev.map((u) =>
+            u.usuario_id === selectedUser.usuario_id ? { ...u, roles: updated } : u
+          )
+        );
+      }
+    } catch (error) {
+      if (__DEV__) console.error(error);
+      Alert.alert(
+        "Error",
+        (error as any)?.response?.data?.message ?? "No se pudo actualizar el rol del usuario."
+      );
+    } finally {
+      setUpdatingRoleId(null);
+    }
+  };
+
   if (loading) {
     return (
-      <View
-        style={[
-          styles.container,
-          { justifyContent: "center", alignItems: "center" },
-        ]}
-      >
-        <ActivityIndicator size="large" color={Colors.dark.adminGold} />
+      <View style={[styles.container, { justifyContent: "center", alignItems: "center" }]}>
+        <ActivityIndicator size="large" color={C.adminGold} />
       </View>
     );
   }
 
+  const activeCount =
+    activeTab === "employees"
+      ? employees.filter((e) => e.is_active).length
+      : systemUsers.filter((u) => u.is_active).length;
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>
-          Usuarios ({employees.filter((e) => e.is_active).length} activos)
+        <Text style={styles.title} numberOfLines={1}>
+          {activeTab === "employees" ? "Personal" : "Usuarios"} ({activeCount} activos)
         </Text>
         <View style={styles.headerActions}>
           <TouchableOpacity
             style={[styles.filterBtn, showInactive && styles.filterBtnActive]}
             onPress={() => setShowInactive((p) => !p)}
           >
-            <Text
-              style={[styles.filterTxt, showInactive && styles.filterTxtActive]}
-            >
+            <Text style={[styles.filterTxt, showInactive && styles.filterTxtActive]}>
               {showInactive ? "Ver activos" : "Ver todos"}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.addBtn}
-            onPress={() => router.push("/(admin)/register")}
+            onPress={() => {
+              if (activeTab === "employees") {
+                router.push("/(admin)/register");
+              } else {
+                setCreateModalVisible(true);
+              }
+            }}
           >
             <UserPlus size={20} color={C.adminGold} />
           </TouchableOpacity>
         </View>
       </View>
 
+      {/* Selector de Pestañas */}
+      <View style={styles.tabContainer}>
+        <TouchableOpacity
+          style={[styles.tabButton, activeTab === "employees" && styles.tabButtonActive]}
+          onPress={() => {
+            setSearch("");
+            setActiveTab("employees");
+          }}
+        >
+          <Text style={[styles.tabButtonText, activeTab === "employees" && styles.tabButtonTextActive]}>
+            Personal (Biometría)
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tabButton, activeTab === "system_users" && styles.tabButtonActive]}
+          onPress={() => {
+            setSearch("");
+            setActiveTab("system_users");
+          }}
+        >
+          <Text style={[styles.tabButtonText, activeTab === "system_users" && styles.tabButtonTextActive]}>
+            Usuarios Sistema
+          </Text>
+        </TouchableOpacity>
+      </View>
+
       <View style={styles.searchBar}>
         <Search size={16} color={C.textMuted} />
         <TextInput
           style={styles.searchInput}
-          placeholder="Buscar por nombre o documento..."
+          placeholder={
+            activeTab === "employees"
+              ? "Buscar por nombre o documento..."
+              : "Buscar por nombre o correo..."
+          }
           placeholderTextColor={C.textMuted}
           value={search}
           onChangeText={setSearch}
         />
       </View>
 
-      <FlatList
-        data={filtered}
-        keyExtractor={(item) => String(item.employee_id)}
-        contentContainerStyle={{ paddingBottom: 20 }}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={C.adminGold}
-            colors={[C.adminGold]}
-          />
-        }
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
-        ListEmptyComponent={
-          <View style={styles.empty}>
-            <Text style={styles.emptyTxt}>
-              {search
-                ? "Sin resultados para tu búsqueda"
-                : "No hay empleados registrados"}
-            </Text>
-          </View>
-        }
-        renderItem={({ item }) => (
-          <View
-            style={[styles.userRow, !item.is_active && styles.userRowInactive]}
-          >
-            <View
-              style={[styles.avatar, !item.is_active && styles.avatarInactive]}
-            >
-              <Text
-                style={[
-                  styles.avatarText,
-                  !item.is_active && styles.avatarTextInactive,
-                ]}
-              >
-                {item.full_name[0].toUpperCase()}
+      {activeTab === "employees" ? (
+        /* LISTADO DE EMPLEADOS (CON FOTO) */
+        <FlatList
+          data={filteredEmployees}
+          keyExtractor={(item) => String(item.employee_id)}
+          contentContainerStyle={{ paddingBottom: 20 }}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={C.adminGold}
+              colors={[C.adminGold]}
+            />
+          }
+          ItemSeparatorComponent={() => <View style={styles.separator} />}
+          ListEmptyComponent={
+            <View style={styles.empty}>
+              <Text style={styles.emptyTxt}>
+                {search ? "Sin resultados para tu búsqueda" : "No hay empleados registrados"}
               </Text>
             </View>
-            <View style={{ flex: 1 }}>
-              <Text
+          }
+          renderItem={({ item }) => (
+            <View style={[styles.userRow, !item.is_active && styles.userRowInactive]}>
+              <View style={[styles.avatar, !item.is_active && styles.avatarInactive, { overflow: "hidden" }]}>
+                <Text style={[styles.avatarText, !item.is_active && styles.avatarTextInactive]}>
+                  {item.full_name[0].toUpperCase()}
+                </Text>
+                <Image
+                  source={{
+                    uri: `${BASE_URL}/employees/${item.employee_id}/image`,
+                    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+                  }}
+                  style={StyleSheet.absoluteFill}
+                  contentFit="cover"
+                  onError={() => {
+                    // No hacer nada si falla, queda la inicial como fallback
+                  }}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.userName, !item.is_active && styles.textInactive]}>
+                  {item.full_name}
+                </Text>
+                <Text style={styles.userDoc}>Doc: {item.document_id}</Text>
+              </View>
+              <View
                 style={[
-                  styles.userName,
-                  !item.is_active && styles.textInactive,
-                ]}
-              >
-                {item.full_name}
-              </Text>
-              <Text style={styles.userDoc}>Doc: {item.document_id}</Text>
-            </View>
-            <View
-              style={[
-                styles.statusBadge,
-                {
-                  backgroundColor: item.is_active
-                    ? "rgba(0,229,160,0.15)"
-                    : "rgba(255,61,113,0.12)",
-                },
-              ]}
-            >
-              <Text
-                style={[
-                  styles.statusText,
+                  styles.statusBadge,
                   {
-                    color: item.is_active
-                      ? Colors.Status.success
-                      : Colors.Status.error,
+                    backgroundColor: item.is_active
+                      ? "rgba(0,229,160,0.15)"
+                      : "rgba(255,61,113,0.12)",
                   },
                 ]}
               >
-                {item.is_active ? "Activo" : "Inactivo"}
+                <Text
+                  style={[
+                    styles.statusText,
+                    {
+                      color: item.is_active ? Colors.Status.success : Colors.Status.error,
+                    },
+                  ]}
+                >
+                  {item.is_active ? "Activo" : "Inactivo"}
+                </Text>
+              </View>
+              {item.is_active ? (
+                <TouchableOpacity
+                  onPress={() => handleDeactivateEmployee(item.employee_id, item.full_name)}
+                  style={styles.actionBtn}
+                >
+                  <UserMinus size={16} color={C.redAlert} />
+                </TouchableOpacity>
+              ) : null}
+            </View>
+          )}
+        />
+      ) : (
+        /* LISTADO DE USUARIOS DEL SISTEMA */
+        <FlatList
+          data={filteredSystemUsers}
+          keyExtractor={(item) => String(item.usuario_id)}
+          contentContainerStyle={{ paddingBottom: 20 }}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={C.adminGold}
+              colors={[C.adminGold]}
+            />
+          }
+          ItemSeparatorComponent={() => <View style={styles.separator} />}
+          ListEmptyComponent={
+            <View style={styles.empty}>
+              <Text style={styles.emptyTxt}>
+                {search ? "Sin resultados para tu búsqueda" : "No hay usuarios de sistema registrados"}
               </Text>
             </View>
-            {item.is_active ? (
+          }
+          renderItem={({ item }) => {
+            const isMe = String(item.usuario_id) === String(user?.id);
+            return (
+              <View style={[styles.userRow, !item.is_active && styles.userRowInactive]}>
+                <TouchableOpacity
+                  style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 12 }}
+                  onPress={() => openRolesModal(item)}
+                >
+                  <View style={[styles.avatar, !item.is_active && styles.avatarInactive]}>
+                    <Text style={[styles.avatarText, !item.is_active && styles.avatarTextInactive]}>
+                      {item.full_name[0].toUpperCase()}
+                    </Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.userName, !item.is_active && styles.textInactive]}>
+                      {item.full_name} {isMe && <Text style={styles.myUserTag}>(Tú)</Text>}
+                    </Text>
+                    <Text style={styles.userDoc}>{item.email}</Text>
+                    
+                    {/* Tags de roles */}
+                    <View style={styles.rolesContainer}>
+                      {item.roles && item.roles.length > 0 ? (
+                        item.roles.map((r, idx) => (
+                          <View key={idx} style={styles.roleBadge}>
+                            <Text style={styles.roleBadgeTxt}>{r}</Text>
+                          </View>
+                        ))
+                      ) : (
+                        <Text style={styles.noRolesTxt}>Sin roles</Text>
+                      )}
+                    </View>
+                  </View>
+                </TouchableOpacity>
+
+                <View style={styles.actionsContainer}>
+                  <TouchableOpacity
+                    onPress={() => openRolesModal(item)}
+                    style={styles.actionBtn}
+                  >
+                    <Shield size={16} color={C.adminGold} />
+                  </TouchableOpacity>
+
+                  {item.is_active ? (
+                    <TouchableOpacity
+                      onPress={() => handleDeactivateUser(item.usuario_id, item.full_name)}
+                      disabled={isMe}
+                      style={[styles.actionBtn, isMe && { opacity: 0.25 }]}
+                    >
+                      <UserMinus size={16} color={C.redAlert} />
+                    </TouchableOpacity>
+                  ) : (
+                    <TouchableOpacity
+                      onPress={() => handleActivateUser(item.usuario_id, item.full_name)}
+                      style={styles.actionBtn}
+                    >
+                      <UserCheck size={16} color={Colors.Status.success} />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </View>
+            );
+          }}
+        />
+      )}
+
+      {/* MODAL: NUEVO USUARIO DE SISTEMA */}
+      <Modal
+        visible={createModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setCreateModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Nuevo Usuario de Sistema</Text>
               <TouchableOpacity
-                onPress={() =>
-                  handleDeactivate(item.employee_id, item.full_name)
-                }
-                style={styles.deactivateBtn}
+                onPress={() => {
+                  setCreateModalVisible(false);
+                  setCreateName("");
+                  setCreateEmail("");
+                  setCreatePassword("");
+                  setCreateRoles([]);
+                }}
               >
-                <UserMinus size={16} color={C.redAlert} />
+                <X size={20} color={C.text} />
               </TouchableOpacity>
-            ) : null}
+            </View>
+
+            <Text style={styles.modalLabel}>NOMBRE COMPLETO *</Text>
+            <TextInput
+              style={styles.modalInput}
+              placeholder="ej: Andrés Felipe Pérez"
+              placeholderTextColor={C.textMuted}
+              value={createName}
+              onChangeText={setCreateName}
+            />
+
+            <Text style={styles.modalLabel}>CORREO ELECTRÓNICO *</Text>
+            <TextInput
+              style={styles.modalInput}
+              placeholder="ej: andres@sentinel.com"
+              placeholderTextColor={C.textMuted}
+              value={createEmail}
+              onChangeText={setCreateEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
+            />
+
+            <Text style={styles.modalLabel}>CONTRASEÑA *</Text>
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Escribe la clave de acceso..."
+              placeholderTextColor={C.textMuted}
+              secureTextEntry
+              value={createPassword}
+              onChangeText={setCreatePassword}
+              autoCapitalize="none"
+            />
+
+            <Text style={styles.modalLabel}>SELECCIONAR ROLES INICIALES</Text>
+            <View style={styles.rolesChecklist}>
+              {availableRoles.map((role) => {
+                const isSelected = createRoles.includes(role.name);
+                return (
+                  <TouchableOpacity
+                    key={role.role_id}
+                    style={[styles.roleCheckRow, isSelected && styles.roleCheckRowSelected]}
+                    onPress={() => toggleInitialRole(role.name)}
+                  >
+                    <View style={[styles.checkbox, isSelected && styles.checkboxSelected]}>
+                      {isSelected && <Check size={12} color="#050514" />}
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.roleCheckName}>{role.name}</Text>
+                      {role.description ? (
+                        <Text style={styles.roleCheckDesc}>{role.description}</Text>
+                      ) : null}
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+              {availableRoles.length === 0 && (
+                <Text style={styles.noRolesTxt}>No hay roles activos disponibles en el sistema.</Text>
+              )}
+            </View>
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.cancelBtn}
+                disabled={createLoading}
+                onPress={() => {
+                  setCreateModalVisible(false);
+                  setCreateName("");
+                  setCreateEmail("");
+                  setCreatePassword("");
+                  setCreateRoles([]);
+                }}
+              >
+                <Text style={styles.cancelTxt}>Cancelar</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={[styles.createBtn, createLoading && { opacity: 0.6 }]}
+                disabled={createLoading}
+                onPress={handleCreateUserSubmit}
+              >
+                <LinearGradient
+                  colors={Colors.Gradients.admin as any}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.createGrad}
+                >
+                  {createLoading ? (
+                    <ActivityIndicator size="small" color="white" />
+                  ) : (
+                    <Text style={styles.createTxt}>Registrar</Text>
+                  )}
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
           </View>
-        )}
-      />
+        </View>
+      </Modal>
+
+      {/* MODAL: ASIGNACIÓN DE ROLES */}
+      <Modal
+        visible={rolesModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setRolesModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <View>
+                <Text style={styles.modalTitle}>Asignación de Roles</Text>
+                <Text style={styles.modalSubtitle} numberOfLines={1}>
+                  Usuario: {selectedUser?.full_name}
+                </Text>
+              </View>
+              <TouchableOpacity onPress={() => setRolesModalVisible(false)}>
+                <X size={20} color={C.text} />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.modalLabel}>ROLES DEL SISTEMA</Text>
+            <View style={{ gap: 12, marginVertical: 10 }}>
+              {availableRoles.map((role) => {
+                const hasRole = selectedUser?.roles.includes(role.name) ?? false;
+                const isUpdating = updatingRoleId === role.role_id;
+                
+                return (
+                  <View key={role.role_id} style={styles.roleToggleRow}>
+                    <View style={{ flex: 1, paddingRight: 10 }}>
+                      <Text style={styles.roleCheckName}>{role.name}</Text>
+                      {role.description ? (
+                        <Text style={styles.roleCheckDesc}>{role.description}</Text>
+                      ) : null}
+                    </View>
+                    {isUpdating ? (
+                      <ActivityIndicator size="small" color={C.adminGold} style={{ marginHorizontal: 10 }} />
+                    ) : (
+                      <Switch
+                        value={hasRole}
+                        onValueChange={() => toggleUserRole(role)}
+                        trackColor={{ false: C.borderStrong, true: `${C.adminGold}50` }}
+                        thumbColor={hasRole ? C.adminGold : C.textMuted}
+                      />
+                    )}
+                  </View>
+                );
+              })}
+              {availableRoles.length === 0 && (
+                <Text style={styles.noRolesTxt}>No hay roles activos disponibles.</Text>
+              )}
+            </View>
+
+            <TouchableOpacity
+              style={[styles.cancelBtn, { marginTop: 20 }]}
+              onPress={() => setRolesModalVisible(false)}
+            >
+              <Text style={[styles.cancelTxt, { color: C.adminGold }]}>Listo</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -263,6 +778,35 @@ const styles = StyleSheet.create({
   filterTxt: { color: C.textMuted, fontSize: 12 },
   filterTxtActive: { color: C.adminGold, fontWeight: "600" },
   addBtn: { padding: 8, backgroundColor: `${C.adminGold}15`, borderRadius: 10 },
+  
+  // Tabs styling
+  tabContainer: {
+    flexDirection: "row",
+    backgroundColor: C.surface,
+    borderRadius: 12,
+    padding: 4,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: C.border,
+  },
+  tabButton: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: "center",
+    borderRadius: 8,
+  },
+  tabButtonActive: {
+    backgroundColor: `${C.adminGold}15`,
+  },
+  tabButtonText: {
+    color: C.textMuted,
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  tabButtonTextActive: {
+    color: C.adminGold,
+  },
+
   searchBar: {
     flexDirection: "row",
     alignItems: "center",
@@ -276,6 +820,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   searchInput: { flex: 1, color: C.text, fontSize: 14 },
+  
   userRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -294,13 +839,173 @@ const styles = StyleSheet.create({
   avatarInactive: { backgroundColor: `${C.textMuted}20` },
   avatarText: { color: C.adminGold, fontWeight: "700", fontSize: 16 },
   avatarTextInactive: { color: C.textMuted },
+  
   userName: { color: C.text, fontSize: 15, fontWeight: "500" },
+  myUserTag: { color: C.adminGold, fontSize: 13, fontWeight: "400" },
   textInactive: { color: C.textMuted },
   userDoc: { color: C.textMuted, fontSize: 12, marginTop: 2 },
   statusBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
   statusText: { fontSize: 11, fontWeight: "600" },
-  deactivateBtn: { padding: 8 },
   separator: { height: 1, backgroundColor: C.border },
   empty: { alignItems: "center", paddingTop: 40 },
   emptyTxt: { color: C.textSubtle, fontSize: 14 },
+
+  // System user roles badges
+  rolesContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+    marginTop: 6,
+  },
+  roleBadge: {
+    backgroundColor: "rgba(255,255,255,0.06)",
+    borderColor: "rgba(255,255,255,0.12)",
+    borderWidth: 1,
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  roleBadgeTxt: {
+    color: C.adminGold,
+    fontSize: 10,
+    fontWeight: "600",
+    textTransform: "uppercase",
+  },
+  noRolesTxt: {
+    color: C.textSubtle,
+    fontSize: 11,
+    fontStyle: "italic",
+    marginTop: 4,
+  },
+
+  actionsContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  actionBtn: { padding: 8 },
+
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    justifyContent: "flex-end",
+  },
+  modalCard: {
+    backgroundColor: C.surface,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 24,
+    paddingBottom: 40,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 20,
+  },
+  modalTitle: {
+    color: C.text,
+    fontSize: 18,
+    fontWeight: "700",
+  },
+  modalSubtitle: {
+    color: C.textMuted,
+    fontSize: 13,
+    marginTop: 2,
+  },
+  modalLabel: {
+    color: "rgba(195,160,240,0.9)",
+    fontSize: 9,
+    fontWeight: "700",
+    letterSpacing: 2,
+    marginBottom: 8,
+    marginTop: 10,
+  },
+  modalInput: {
+    backgroundColor: C.background,
+    borderWidth: 1,
+    borderColor: C.borderStrong,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    color: C.text,
+    fontSize: 14,
+    marginBottom: 12,
+  },
+  rolesChecklist: {
+    maxHeight: 180,
+    backgroundColor: C.background,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: C.borderStrong,
+    padding: 10,
+    marginBottom: 16,
+    gap: 8,
+  },
+  roleCheckRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 6,
+    borderRadius: 6,
+  },
+  roleCheckRowSelected: {
+    backgroundColor: "rgba(255,255,255,0.03)",
+  },
+  checkbox: {
+    width: 18,
+    height: 18,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: C.borderStrong,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  checkboxSelected: {
+    backgroundColor: C.adminGold,
+    borderColor: C.adminGold,
+  },
+  roleCheckName: {
+    color: C.text,
+    fontSize: 13,
+    fontWeight: "600",
+    textTransform: "capitalize",
+  },
+  roleCheckDesc: {
+    color: C.textMuted,
+    fontSize: 11,
+    marginTop: 2,
+  },
+  roleToggleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: C.background,
+    borderColor: C.border,
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 12,
+  },
+
+  modalActions: { flexDirection: "row", gap: 12, marginTop: 8 },
+  cancelBtn: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 12,
+    paddingVertical: 13,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cancelTxt: { color: C.textMuted, fontSize: 15, fontWeight: "600" },
+  createBtn: { flex: 1, height: 48 },
+  createGrad: {
+    flex: 1,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  createTxt: { color: "white", fontSize: 15, fontWeight: "700" },
 });

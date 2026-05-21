@@ -50,3 +50,13 @@ export interface AuditEntry {
   created_at: string;
   full_name: string | null;
 }
+
+export interface Usuario {
+  usuario_id: number;
+  full_name: string;
+  email: string;
+  is_active: boolean;
+  roles: string[];
+  created_at: string;
+  last_login: string | null;
+}
