@@ -14,13 +14,14 @@ import {
 import { Colors } from "../../constants/theme";
 import { api } from "../../services/api";
 import { useAuthStore } from "../../store/authStore";
+import { Employee } from "../../types/domain";
 
 const C = Colors.dark;
 
 export default function UsersScreen() {
   const user = useAuthStore((s) => s.user);
   const router = useRouter();
-  const [employees, setEmployees] = useState<any[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [showInactive, setShowInactive] = useState(false);
@@ -31,7 +32,8 @@ export default function UsersScreen() {
         const res = await api.getEmployees();
         setEmployees(res.data.employees ?? []);
       } catch (error) {
-        console.error(error);
+        if (__DEV__) console.error(error);
+        Alert.alert("Error", "No se pudieron cargar los usuarios. Intenta de nuevo.");
       } finally {
         setLoading(false);
       }
@@ -65,7 +67,11 @@ export default function UsersScreen() {
                 ),
               );
             } catch (error) {
-              console.error(error);
+              if (__DEV__) console.error(error);
+              Alert.alert(
+                "Error",
+                (error as any)?.response?.data?.message ?? "No se pudo desactivar el empleado."
+              );
             }
           },
         },

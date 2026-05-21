@@ -4,6 +4,7 @@ import { ArrowLeft, CheckCircle, XCircle } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 import {
     ActivityIndicator,
+    Alert,
     FlatList,
     StyleSheet,
     Text,
@@ -12,6 +13,7 @@ import {
 } from "react-native";
 import { Colors } from "../../constants/theme";
 import { api } from "../../services/api";
+import { AccessLog } from "../../types/domain";
 
 const C = Colors.dark;
 
@@ -27,7 +29,7 @@ function formatDate(iso: string) {
 
 export default function HistoryScreen() {
   const router = useRouter();
-  const [logs, setLogs] = useState<any[]>([]);
+  const [logs, setLogs] = useState<AccessLog[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -36,7 +38,8 @@ export default function HistoryScreen() {
         const res = await api.getLogs({ limit: 100 });
         setLogs(res.data.logs ?? []);
       } catch (error) {
-        console.error(error);
+        if (__DEV__) console.error(error);
+        Alert.alert("Error", "No se pudo cargar el historial de accesos.");
       } finally {
         setLoading(false);
       }
@@ -100,7 +103,7 @@ export default function HistoryScreen() {
         keyExtractor={(item) => String(item.log_id)}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
-        renderItem={({ item, index }: { item: any; index: number }) => {
+        renderItem={({ item, index }: { item: AccessLog; index: number }) => {
           const ok = item.access_result === "GRANTED";
           const color = ok ? Colors.Status.success : Colors.Status.error;
           return (

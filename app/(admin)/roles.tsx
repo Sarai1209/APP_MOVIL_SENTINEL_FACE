@@ -16,13 +16,14 @@ import {
 import { Colors } from "../../constants/theme";
 import { api } from "../../services/api";
 import { useAuthStore } from "../../store/authStore";
+import { Role } from "../../types/domain";
 
 const C = Colors.dark;
 
 export default function RolesScreen() {
   const user = useAuthStore((s) => s.user);
   const router = useRouter();
-  const [roles, setRoles] = useState<any[]>([]);
+  const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
   const [newName, setNewName] = useState("");
@@ -34,7 +35,8 @@ export default function RolesScreen() {
         const res = await api.getRoles();
         setRoles(res.data.roles ?? []);
       } catch (error) {
-        console.error(error);
+        if (__DEV__) console.error(error);
+        Alert.alert("Error", "No se pudieron cargar los roles. Intenta de nuevo.");
       } finally {
         setLoading(false);
       }
@@ -54,7 +56,11 @@ export default function RolesScreen() {
       setNewDesc("");
       setModalVisible(false);
     } catch (error) {
-      console.error(error);
+      if (__DEV__) console.error(error);
+      Alert.alert(
+        "Error",
+        (error as any)?.response?.data?.message ?? "No se pudo crear el rol."
+      );
     }
   };
 
@@ -76,7 +82,11 @@ export default function RolesScreen() {
                 ),
               );
             } catch (error) {
-              console.error(error);
+              if (__DEV__) console.error(error);
+              Alert.alert(
+                "Error",
+                (error as any)?.response?.data?.message ?? "No se pudo desactivar el rol."
+              );
             }
           },
         },
@@ -98,7 +108,11 @@ export default function RolesScreen() {
               ),
             );
           } catch (error) {
-            console.error(error);
+            if (__DEV__) console.error(error);
+            Alert.alert(
+              "Error",
+              (error as any)?.response?.data?.message ?? "No se pudo activar el rol."
+            );
           }
         },
       },

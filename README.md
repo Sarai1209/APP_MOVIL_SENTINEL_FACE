@@ -52,12 +52,12 @@ Escanea el código QR que aparece en la terminal con la app **Expo Go** desde tu
 
 ##  Credenciales
 
-La app usa usuarios simulados para demostrar el control de acceso por roles:
+Las credenciales por defecto configuradas en la base de datos del sistema son:
 
-| Rol            | Correo               | Acceso                                 |
+| Rol            | Correo               | Contraseña | Acceso                                 |
 |                |                      |            |                                        |
-| Administrador  | admin@sentinel.com   | Panel admin completo                   |
-| Usuario        | usuario@sentinel.com | Tabs: inicio, escaneo, alertas, perfil |
+| Administrador  | admin@admin.com      | admin123   | Panel admin completo                   |
+
 
 
 ##  Estructura del proyecto

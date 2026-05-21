@@ -52,7 +52,6 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logout: async () => {
-        await SecureStore.deleteItemAsync(TOKEN_KEY).catch(() => {});
         set({ token: null, user: null, isAuthenticated: false });
       },
     }),
@@ -62,7 +61,7 @@ export const useAuthStore = create<AuthState>()(
       onRehydrateStorage: () => (state) => {
         if (state?.token) {
           if (isTokenExpired(state.token)) {
-            SecureStore.deleteItemAsync(TOKEN_KEY).catch(() => {});
+            // persist limpia el storage al recibir el setState con token: null
             useAuthStore.setState({
               token: null,
               user: null,
@@ -86,3 +85,9 @@ export const useAuthStore = create<AuthState>()(
     },
   ),
 );
+
+// Selector externo para verificar roles (F-05)
+export const selectHasRole =
+  (role: string) =>
+  (state: AuthState): boolean =>
+    state.user?.roles.includes(role) ?? false;

@@ -10,6 +10,7 @@ import {
 import React, { useEffect, useState } from "react";
 import {
     ActivityIndicator,
+    Alert,
     ScrollView,
     StyleSheet,
     Text,
@@ -19,6 +20,7 @@ import {
 import { Colors } from "../../constants/theme";
 import { api } from "../../services/api";
 import { useAuthStore } from "../../store/authStore";
+import { AlertRecord } from "../../types/domain";
 
 type FilterKey = "all" | "SPOOFING_ATTEMPT" | "UNKNOWN_FACE" | "resolved";
 const C = Colors.dark;
@@ -54,8 +56,8 @@ function timeAgo(iso: string) {
 export default function AlertsScreen() {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
-  const [activeAlerts,   setActiveAlerts]   = useState<any[]>([]);
-  const [resolvedAlerts, setResolvedAlerts] = useState<any[]>([]);
+  const [activeAlerts,   setActiveAlerts]   = useState<AlertRecord[]>([]);
+  const [resolvedAlerts, setResolvedAlerts] = useState<AlertRecord[]>([]);
   const [loading,        setLoading]        = useState(true);
   const [filter,         setFilter]         = useState<FilterKey>("all");
 
@@ -69,7 +71,8 @@ export default function AlertsScreen() {
         setActiveAlerts(activeRes.data.alerts ?? []);
         setResolvedAlerts(resolvedRes.data.alerts ?? []);
       } catch (error) {
-        console.error(error);
+        if (__DEV__) console.error(error);
+        Alert.alert("Error", "No se pudieron cargar las alertas. Intenta de nuevo.");
       } finally {
         setLoading(false);
       }
@@ -98,7 +101,11 @@ export default function AlertsScreen() {
         ]);
       }
     } catch (error) {
-      console.error(error);
+      if (__DEV__) console.error(error);
+      Alert.alert(
+        "Error",
+        (error as any)?.response?.data?.message ?? "No se pudo resolver la alerta."
+      );
     }
   };
 

@@ -7,10 +7,12 @@ import {
     Shield,
     UserCheck,
     Users,
+    LucideIcon,
 } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 import {
     ActivityIndicator,
+    Alert,
     ScrollView,
     StyleSheet,
     Text,
@@ -20,6 +22,7 @@ import {
 import { Colors } from "../../constants/theme";
 import { api } from "../../services/api";
 import { useAuthStore } from "../../store/authStore";
+import { AccessLog, AlertRecord, Employee } from "../../types/domain";
 
 const C = Colors.dark;
 
@@ -30,7 +33,14 @@ function timeAgo(iso: string) {
   return `Hace ${Math.floor(diff / 3600)}h`;
 }
 
-const StatCard = ({ label, value, color, icon: Icon }: any) => (
+interface StatCardProps {
+  label: string;
+  value: number | string;
+  color: string;
+  icon: LucideIcon;
+}
+
+const StatCard = ({ label, value, color, icon: Icon }: StatCardProps) => (
   <View
     style={[
       styles.statCard,
@@ -52,9 +62,9 @@ export default function DashboardScreen() {
   const user = useAuthStore((s) => s.user);
   const router = useRouter();
 
-  const [logs, setLogs] = useState<any[]>([]);
-  const [employees, setEmployees] = useState<any[]>([]);
-  const [alerts, setAlerts] = useState<any[]>([]);
+  const [logs, setLogs] = useState<AccessLog[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [alerts, setAlerts] = useState<AlertRecord[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -69,7 +79,8 @@ export default function DashboardScreen() {
         setEmployees(empRes.data.employees ?? []);
         setAlerts(alertsRes.data.alerts ?? []);
       } catch (error) {
-        console.error(error);
+        if (__DEV__) console.error(error);
+        Alert.alert("Error", "No se pudo cargar la información. Intenta de nuevo.");
       } finally {
         setLoading(false);
       }

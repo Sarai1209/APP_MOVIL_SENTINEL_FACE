@@ -8,6 +8,7 @@ import {
 import React, { useEffect, useState } from "react";
 import {
     ActivityIndicator,
+    Alert,
     Dimensions,
     FlatList,
     StyleSheet,
@@ -17,11 +18,11 @@ import {
 } from "react-native";
 import { Image } from "expo-image";
 import { Colors } from "../../constants/theme";
-import { api } from "../../services/api";
+import { api, BASE_URL } from "../../services/api";
 import { useAuthStore } from "../../store/authStore";
+import { AccessLog } from "../../types/domain";
 
 const C = Colors.dark;
-const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? "https://sentinelfacebackend-production.up.railway.app/api";
 const COL = 3;
 const GAP = 8;
 const SCREEN = Dimensions.get("window").width;
@@ -49,7 +50,12 @@ function timeStr(iso: string) {
   return d.toLocaleDateString("es-CO", { day: "2-digit", month: "short" });
 }
 
-function SnapshotTile({ item }: { item: any }) {
+interface SnapshotTileProps {
+  item: AccessLog;
+  token: string | null;
+}
+
+function SnapshotTile({ item, token }: SnapshotTileProps) {
   const ok = item.access_result === "GRANTED";
   const spoof = item.liveness === "SPOOFING";
   const color = ok
@@ -65,13 +71,11 @@ function SnapshotTile({ item }: { item: any }) {
   const initials = item.full_name
     ? item.full_name
         .split(" ")
-        .map((n) => n[0])
+        .map((n: string) => n[0])
         .join("")
         .toUpperCase()
         .slice(0, 2)
     : "??";
-
-  const token = useAuthStore((s) => s.token);
 
   return (
     <View style={[styles.tile, { width: TILE }]}>
@@ -115,7 +119,8 @@ function SnapshotTile({ item }: { item: any }) {
 }
 
 export default function GalleryScreen() {
-  const [logs, setLogs] = useState<any[]>([]);
+  const token = useAuthStore((s) => s.token);
+  const [logs, setLogs] = useState<AccessLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<FilterKey>("all");
 
@@ -125,7 +130,8 @@ export default function GalleryScreen() {
         const res = await api.getLogs();
         setLogs(res.data.logs ?? []);
       } catch (error) {
-        console.error(error);
+        if (__DEV__) console.error(error);
+        Alert.alert("Error", "No se pudo cargar la galería. Intenta de nuevo.");
       } finally {
         setLoading(false);
       }
@@ -230,7 +236,7 @@ export default function GalleryScreen() {
           contentContainerStyle={styles.grid}
           showsVerticalScrollIndicator={false}
           columnWrapperStyle={styles.row}
-          renderItem={({ item }) => <SnapshotTile item={item} />}
+          renderItem={({ item }) => <SnapshotTile item={item} token={token} />}
         />
       )}
     </LinearGradient>

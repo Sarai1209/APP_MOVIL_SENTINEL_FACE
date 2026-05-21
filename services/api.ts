@@ -1,7 +1,8 @@
 import axios from "axios";
 import * as SecureStore from "expo-secure-store";
+import { Alert } from "react-native";
 
-const BASE_URL =
+export const BASE_URL =
   process.env.EXPO_PUBLIC_API_URL ??
   "https://sentinelfacebackend-production.up.railway.app/api";
 
@@ -32,12 +33,25 @@ client.interceptors.response.use(
     const status = error?.response?.status;
     const config = error?.config as any;
 
-    console.error(`[API ERROR] ${config?.method?.toUpperCase()} ${config?.url} - Status: ${status}`);
-    if (error?.response?.data) {
-      console.error(`[API ERROR DATA]:`, JSON.stringify(error.response.data));
+    if (__DEV__) {
+      const isExpectedRefreshFailure = status === 401 && config?.url?.includes("/auth/refresh");
+      if (!isExpectedRefreshFailure) {
+        const fullUrl = config ? `${config.baseURL || ""}${config.url || ""}` : "";
+        console.error(
+          `[API ERROR] ${config?.method?.toUpperCase()} ${fullUrl} - Status: ${status} - Message: ${error?.message} - Code: ${error?.code}`
+        );
+        if (error?.response?.data) {
+          console.error(`[API ERROR DATA]:`, JSON.stringify(error.response.data));
+        }
+      }
     }
 
-    if (status === 401 && config && !config._retry) {
+    if (
+      status === 401 &&
+      config &&
+      !config._retry &&
+      !config.url?.includes("/auth/refresh")
+    ) {
       config._retry = true;
       try {
         const { data } = await client.post("/auth/refresh");
@@ -69,9 +83,16 @@ client.interceptors.response.use(
     }
 
     if (status === 403) {
-      console.warn(
-        "[api] Acceso prohibido (403):",
-        error?.response?.data?.message,
+      if (__DEV__) {
+        console.warn(
+          "[api] Acceso prohibido (403):",
+          error?.response?.data?.message,
+        );
+      }
+      Alert.alert(
+        "Acceso denegado",
+        "No tienes permiso para realizar esta acción.",
+        [{ text: "Aceptar" }]
       );
     }
 

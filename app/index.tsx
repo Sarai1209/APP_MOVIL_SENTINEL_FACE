@@ -50,13 +50,12 @@ export default function LoginScreen() {
         }),
       ]),
     ).start();
-  }, []);
+  }, [faceAnim]);
 
-  // Forzar siempre a pasar por el login, incluso si había sesión (según lo solicitado)
-  useEffect(() => {
-    // Si queremos obligar siempre al login, limpiamos la sesión al montar
-    useAuthStore.getState().logout();
-  }, []);
+  // Redirección automática si ya hay sesión válida (F-01/F-02)
+  if (isAuthenticated && !isLoading) {
+    return <Redirect href="/(admin)/dashboard" />;
+  }
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -118,7 +117,7 @@ export default function LoginScreen() {
                   style={styles.iconStyle}
                 />
                 <TextInput
-                  placeholder="admin@sentinel.com"
+                  placeholder="admin@admin.com"
                   placeholderTextColor="rgba(255,255,255,0.2)"
                   style={styles.input}
                   value={email}

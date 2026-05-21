@@ -14,6 +14,7 @@ import {
 import { Colors } from "../../constants/theme";
 import { api } from "../../services/api";
 import { useAuthStore } from "../../store/authStore";
+import { AlertRecord } from "../../types/domain";
 
 const C = Colors.dark;
 
@@ -38,7 +39,7 @@ export default function AlertDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const user = useAuthStore((s) => s.user);
   const router = useRouter();
-  const [alert, setAlert] = useState<any | null>(null);
+  const [alert, setAlert] = useState<AlertRecord | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -47,7 +48,8 @@ export default function AlertDetailScreen() {
         const res = await api.getAlert(Number(id));
         setAlert(res.data.alert ?? null);
       } catch (error) {
-        console.error(error);
+        if (__DEV__) console.error(error);
+        Alert.alert("Error", "No se pudo cargar el detalle de la alerta.");
       } finally {
         setLoading(false);
       }
@@ -80,7 +82,8 @@ export default function AlertDetailScreen() {
               );
               router.back();
             } catch (error) {
-              console.error(error);
+              if (__DEV__) console.error(error);
+              Alert.alert("Error", "No se pudo resolver la alerta.");
             }
           },
         },

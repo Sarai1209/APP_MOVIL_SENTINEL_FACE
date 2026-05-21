@@ -3,6 +3,7 @@ import { CheckCircle, ShieldAlert, XCircle } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 import {
     ActivityIndicator,
+    Alert,
     ScrollView,
     StyleSheet,
     Text,
@@ -10,10 +11,11 @@ import {
 } from "react-native";
 import { Colors } from "../../constants/theme";
 import { api } from "../../services/api";
+import { AccessLog } from "../../types/domain";
 
 const C = Colors.dark;
 
-function groupByDate(logs: any[]): Record<string, any[]> {
+function groupByDate(logs: AccessLog[]): Record<string, AccessLog[]> {
   return logs.reduce(
     (acc, log) => {
       const d = new Date(log.event_time);
@@ -33,7 +35,7 @@ function groupByDate(logs: any[]): Record<string, any[]> {
       acc[label].push(log);
       return acc;
     },
-    {} as Record<string, any[]>,
+    {} as Record<string, AccessLog[]>,
   );
 }
 
@@ -46,7 +48,7 @@ function timeStr(iso: string) {
 }
 
 export default function ReportsScreen() {
-  const [logs, setLogs] = useState<any[]>([]);
+  const [logs, setLogs] = useState<AccessLog[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -55,7 +57,8 @@ export default function ReportsScreen() {
         const res = await api.getLogs({ limit: 100 });
         setLogs(res.data.logs ?? []);
       } catch (error) {
-        console.error(error);
+        if (__DEV__) console.error(error);
+        Alert.alert("Error", "No se pudieron cargar los reportes.");
       } finally {
         setLoading(false);
       }
