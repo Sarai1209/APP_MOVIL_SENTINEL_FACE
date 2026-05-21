@@ -138,7 +138,8 @@ export const api = {
       headers: { "Content-Type": "multipart/form-data" },
     }),
 
-  getRoles: () => client.get("/roles"),
+  getRoles: (includeInactive = true) =>
+    client.get("/roles", { params: { include_inactive: includeInactive } }),
 
   createRole: (name: string, description: string, usuarioId: number | string) =>
     client.post("/roles", { name, description, requestor_id: usuarioId }),
