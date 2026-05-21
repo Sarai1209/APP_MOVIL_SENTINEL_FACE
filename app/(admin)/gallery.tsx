@@ -1,16 +1,18 @@
 import { LinearGradient } from "expo-linear-gradient";
+import { useFocusEffect } from "expo-router";
 import {
     CheckCircle,
     ImageIcon,
     ShieldAlert,
     XCircle,
 } from "lucide-react-native";
-import React, { useEffect, useState } from "react";
+import React, { useState, useCallback } from "react";
 import {
     ActivityIndicator,
     Alert,
     Dimensions,
     FlatList,
+    RefreshControl,
     StyleSheet,
     Text,
     TouchableOpacity,
@@ -122,22 +124,35 @@ export default function GalleryScreen() {
   const token = useAuthStore((s) => s.token);
   const [logs, setLogs] = useState<AccessLog[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<FilterKey>("all");
 
-  useEffect(() => {
-    const loadLogs = async () => {
-      try {
-        const res = await api.getLogs();
-        setLogs(res.data.logs ?? []);
-      } catch (error) {
-        if (__DEV__) console.error(error);
-        Alert.alert("Error", "No se pudo cargar la galería. Intenta de nuevo.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadLogs();
+  const fetchLogs = useCallback(async (showFullLoading = false) => {
+    if (showFullLoading) {
+      setLoading(true);
+    }
+    try {
+      const res = await api.getLogs();
+      setLogs(res.data.logs ?? []);
+    } catch (error) {
+      if (__DEV__) console.error(error);
+      Alert.alert("Error", "No se pudo cargar la galería. Intenta de nuevo.");
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchLogs(logs.length === 0);
+    }, [fetchLogs, logs.length])
+  );
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchLogs(false);
+  }, [fetchLogs]);
 
   const displayed = logs.filter((l) => {
     if (filter === "all") return true;
@@ -223,22 +238,29 @@ export default function GalleryScreen() {
         )}
       />
 
-      {displayed.length === 0 ? (
-        <View style={styles.empty}>
-          <ImageIcon size={40} color={C.textSubtle} />
-          <Text style={styles.emptyTxt}>Sin capturas en esta categoría</Text>
-        </View>
-      ) : (
-        <FlatList
-          data={displayed}
-          keyExtractor={(item) => String(item.log_id)}
-          numColumns={COL}
-          contentContainerStyle={styles.grid}
-          showsVerticalScrollIndicator={false}
-          columnWrapperStyle={styles.row}
-          renderItem={({ item }) => <SnapshotTile item={item} token={token} />}
-        />
-      )}
+      <FlatList
+        data={displayed}
+        keyExtractor={(item) => String(item.log_id)}
+        numColumns={COL}
+        contentContainerStyle={[styles.grid, displayed.length === 0 && { flexGrow: 1, justifyContent: "center" }]}
+        showsVerticalScrollIndicator={false}
+        columnWrapperStyle={displayed.length > 0 ? styles.row : undefined}
+        ListEmptyComponent={
+          <View style={styles.empty}>
+            <ImageIcon size={40} color={C.textSubtle} />
+            <Text style={styles.emptyTxt}>Sin capturas en esta categoría</Text>
+          </View>
+        }
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={C.adminGold}
+            colors={[C.adminGold]}
+          />
+        }
+        renderItem={({ item }) => <SnapshotTile item={item} token={token} />}
+      />
     </LinearGradient>
   );
 }

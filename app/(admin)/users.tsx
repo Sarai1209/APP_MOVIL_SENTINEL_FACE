@@ -1,10 +1,11 @@
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import { Search, UserMinus, UserPlus } from "lucide-react-native";
-import React, { useEffect, useState } from "react";
+import React, { useState, useCallback } from "react";
 import {
     ActivityIndicator,
     Alert,
     FlatList,
+    RefreshControl,
     StyleSheet,
     Text,
     TextInput,
@@ -23,23 +24,36 @@ export default function UsersScreen() {
   const router = useRouter();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState("");
   const [showInactive, setShowInactive] = useState(false);
 
-  useEffect(() => {
-    const loadEmployees = async () => {
-      try {
-        const res = await api.getEmployees();
-        setEmployees(res.data.employees ?? []);
-      } catch (error) {
-        if (__DEV__) console.error(error);
-        Alert.alert("Error", "No se pudieron cargar los usuarios. Intenta de nuevo.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadEmployees();
+  const fetchEmployees = useCallback(async (showFullLoading = false) => {
+    if (showFullLoading) {
+      setLoading(true);
+    }
+    try {
+      const res = await api.getEmployees();
+      setEmployees(res.data.employees ?? []);
+    } catch (error) {
+      if (__DEV__) console.error(error);
+      Alert.alert("Error", "No se pudieron cargar los usuarios. Intenta de nuevo.");
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchEmployees(employees.length === 0);
+    }, [fetchEmployees, employees.length])
+  );
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchEmployees(false);
+  }, [fetchEmployees]);
 
   const filtered = employees.filter((e) => {
     const matchSearch =
@@ -134,6 +148,14 @@ export default function UsersScreen() {
         keyExtractor={(item) => String(item.employee_id)}
         contentContainerStyle={{ paddingBottom: 20 }}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={C.adminGold}
+            colors={[C.adminGold]}
+          />
+        }
         ItemSeparatorComponent={() => <View style={styles.separator} />}
         ListEmptyComponent={
           <View style={styles.empty}>

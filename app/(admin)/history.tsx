@@ -1,11 +1,12 @@
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import { ArrowLeft, CheckCircle, XCircle } from "lucide-react-native";
-import React, { useEffect, useState } from "react";
+import React, { useState, useCallback } from "react";
 import {
     ActivityIndicator,
     Alert,
     FlatList,
+    RefreshControl,
     StyleSheet,
     Text,
     TouchableOpacity,
@@ -31,21 +32,34 @@ export default function HistoryScreen() {
   const router = useRouter();
   const [logs, setLogs] = useState<AccessLog[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    const loadLogs = async () => {
-      try {
-        const res = await api.getLogs({ limit: 100 });
-        setLogs(res.data.logs ?? []);
-      } catch (error) {
-        if (__DEV__) console.error(error);
-        Alert.alert("Error", "No se pudo cargar el historial de accesos.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadLogs();
+  const fetchLogs = useCallback(async (showFullLoading = false) => {
+    if (showFullLoading) {
+      setLoading(true);
+    }
+    try {
+      const res = await api.getLogs({ limit: 100 });
+      setLogs(res.data.logs ?? []);
+    } catch (error) {
+      if (__DEV__) console.error(error);
+      Alert.alert("Error", "No se pudo cargar el historial de accesos.");
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchLogs(logs.length === 0);
+    }, [fetchLogs, logs.length])
+  );
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchLogs(false);
+  }, [fetchLogs]);
 
   if (loading) {
     return (
@@ -103,6 +117,14 @@ export default function HistoryScreen() {
         keyExtractor={(item) => String(item.log_id)}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={C.adminGold}
+            colors={[C.adminGold]}
+          />
+        }
         renderItem={({ item, index }: { item: AccessLog; index: number }) => {
           const ok = item.access_result === "GRANTED";
           const color = ok ? Colors.Status.success : Colors.Status.error;

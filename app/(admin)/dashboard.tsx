@@ -1,5 +1,5 @@
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import {
     AlertTriangle,
     CheckCircle,
@@ -9,10 +9,11 @@ import {
     Users,
     LucideIcon,
 } from "lucide-react-native";
-import React, { useEffect, useState } from "react";
+import React, { useState, useCallback } from "react";
 import {
     ActivityIndicator,
     Alert,
+    RefreshControl,
     ScrollView,
     StyleSheet,
     Text,
@@ -66,27 +67,40 @@ export default function DashboardScreen() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [alerts, setAlerts] = useState<AlertRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const [logsRes, empRes, alertsRes] = await Promise.all([
-          api.getLogs({ limit: 10 }),
-          api.getEmployees(),
-          api.getAlerts(0),
-        ]);
-        setLogs(logsRes.data.logs ?? []);
-        setEmployees(empRes.data.employees ?? []);
-        setAlerts(alertsRes.data.alerts ?? []);
-      } catch (error) {
-        if (__DEV__) console.error(error);
-        Alert.alert("Error", "No se pudo cargar la información. Intenta de nuevo.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
+  const fetchDashboard = useCallback(async (showFullLoading = false) => {
+    if (showFullLoading) {
+      setLoading(true);
+    }
+    try {
+      const [logsRes, empRes, alertsRes] = await Promise.all([
+        api.getLogs({ limit: 10 }),
+        api.getEmployees(),
+        api.getAlerts(0),
+      ]);
+      setLogs(logsRes.data.logs ?? []);
+      setEmployees(empRes.data.employees ?? []);
+      setAlerts(alertsRes.data.alerts ?? []);
+    } catch (error) {
+      if (__DEV__) console.error(error);
+      Alert.alert("Error", "No se pudo cargar la información. Intenta de nuevo.");
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchDashboard(logs.length === 0 && employees.length === 0 && alerts.length === 0);
+    }, [fetchDashboard, logs.length, employees.length, alerts.length])
+  );
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchDashboard(false);
+  }, [fetchDashboard]);
 
   if (loading) {
     return (
@@ -112,6 +126,14 @@ export default function DashboardScreen() {
       style={styles.container}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          tintColor={C.adminGold}
+          colors={[C.adminGold]}
+        />
+      }
     >
       <View style={styles.header}>
         <View>

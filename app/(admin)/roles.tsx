@@ -1,12 +1,13 @@
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import { ArrowLeft, Plus, ShieldCheck, ShieldOff } from "lucide-react-native";
-import React, { useEffect, useState } from "react";
+import React, { useState, useCallback } from "react";
 import {
     ActivityIndicator,
     Alert,
     FlatList,
     Modal,
+    RefreshControl,
     StyleSheet,
     Text,
     TextInput,
@@ -25,24 +26,37 @@ export default function RolesScreen() {
   const router = useRouter();
   const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [newName, setNewName] = useState("");
   const [newDesc, setNewDesc] = useState("");
 
-  useEffect(() => {
-    const loadRoles = async () => {
-      try {
-        const res = await api.getRoles();
-        setRoles(res.data.roles ?? []);
-      } catch (error) {
-        if (__DEV__) console.error(error);
-        Alert.alert("Error", "No se pudieron cargar los roles. Intenta de nuevo.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadRoles();
+  const fetchRoles = useCallback(async (showFullLoading = false) => {
+    if (showFullLoading) {
+      setLoading(true);
+    }
+    try {
+      const res = await api.getRoles();
+      setRoles(res.data.roles ?? []);
+    } catch (error) {
+      if (__DEV__) console.error(error);
+      Alert.alert("Error", "No se pudieron cargar los roles. Intenta de nuevo.");
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchRoles(roles.length === 0);
+    }, [fetchRoles, roles.length])
+  );
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchRoles(false);
+  }, [fetchRoles]);
 
   const handleCreate = async () => {
     if (!newName.trim()) {
@@ -157,6 +171,14 @@ export default function RolesScreen() {
         keyExtractor={(item) => String(item.role_id)}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={C.adminGold}
+            colors={[C.adminGold]}
+          />
+        }
         ItemSeparatorComponent={() => <View style={styles.separator} />}
         ListEmptyComponent={
           <View style={styles.empty}>

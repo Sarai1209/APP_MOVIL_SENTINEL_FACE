@@ -1,5 +1,5 @@
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import {
     AlertTriangle,
     Bell,
@@ -7,10 +7,11 @@ import {
     Info,
     ShieldAlert,
 } from "lucide-react-native";
-import React, { useEffect, useState } from "react";
+import React, { useState, useCallback } from "react";
 import {
     ActivityIndicator,
     Alert,
+    RefreshControl,
     ScrollView,
     StyleSheet,
     Text,
@@ -59,26 +60,39 @@ export default function AlertsScreen() {
   const [activeAlerts,   setActiveAlerts]   = useState<AlertRecord[]>([]);
   const [resolvedAlerts, setResolvedAlerts] = useState<AlertRecord[]>([]);
   const [loading,        setLoading]        = useState(true);
+  const [refreshing,     setRefreshing]     = useState(false);
   const [filter,         setFilter]         = useState<FilterKey>("all");
 
-  useEffect(() => {
-    const loadAlerts = async () => {
-      try {
-        const [activeRes, resolvedRes] = await Promise.all([
-          api.getAlerts(0),
-          api.getAlerts(1),
-        ]);
-        setActiveAlerts(activeRes.data.alerts ?? []);
-        setResolvedAlerts(resolvedRes.data.alerts ?? []);
-      } catch (error) {
-        if (__DEV__) console.error(error);
-        Alert.alert("Error", "No se pudieron cargar las alertas. Intenta de nuevo.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadAlerts();
+  const fetchAlerts = useCallback(async (showFullLoading = false) => {
+    if (showFullLoading) {
+      setLoading(true);
+    }
+    try {
+      const [activeRes, resolvedRes] = await Promise.all([
+        api.getAlerts(0),
+        api.getAlerts(1),
+      ]);
+      setActiveAlerts(activeRes.data.alerts ?? []);
+      setResolvedAlerts(resolvedRes.data.alerts ?? []);
+    } catch (error) {
+      if (__DEV__) console.error(error);
+      Alert.alert("Error", "No se pudieron cargar las alertas. Intenta de nuevo.");
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchAlerts(activeAlerts.length === 0 && resolvedAlerts.length === 0);
+    }, [fetchAlerts, activeAlerts.length, resolvedAlerts.length])
+  );
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchAlerts(false);
+  }, [fetchAlerts]);
 
   const displayed =
     filter === "resolved"
@@ -166,6 +180,14 @@ export default function AlertsScreen() {
       <ScrollView
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={C.adminGold}
+            colors={[C.adminGold]}
+          />
+        }
       >
         {displayed.length === 0 ? (
           <View style={styles.empty}>

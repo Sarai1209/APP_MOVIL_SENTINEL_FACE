@@ -1,9 +1,11 @@
 import { LinearGradient } from "expo-linear-gradient";
+import { useFocusEffect } from "expo-router";
 import { CheckCircle, ShieldAlert, XCircle } from "lucide-react-native";
-import React, { useEffect, useState } from "react";
+import React, { useState, useCallback } from "react";
 import {
     ActivityIndicator,
     Alert,
+    RefreshControl,
     ScrollView,
     StyleSheet,
     Text,
@@ -50,21 +52,34 @@ function timeStr(iso: string) {
 export default function ReportsScreen() {
   const [logs, setLogs] = useState<AccessLog[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    const loadLogs = async () => {
-      try {
-        const res = await api.getLogs({ limit: 100 });
-        setLogs(res.data.logs ?? []);
-      } catch (error) {
-        if (__DEV__) console.error(error);
-        Alert.alert("Error", "No se pudieron cargar los reportes.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadLogs();
+  const fetchLogs = useCallback(async (showFullLoading = false) => {
+    if (showFullLoading) {
+      setLoading(true);
+    }
+    try {
+      const res = await api.getLogs({ limit: 100 });
+      setLogs(res.data.logs ?? []);
+    } catch (error) {
+      if (__DEV__) console.error(error);
+      Alert.alert("Error", "No se pudieron cargar los reportes.");
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchLogs(logs.length === 0);
+    }, [fetchLogs, logs.length])
+  );
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchLogs(false);
+  }, [fetchLogs]);
 
   if (loading) {
     return (
@@ -91,6 +106,14 @@ export default function ReportsScreen() {
       style={styles.container}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          tintColor={C.adminGold}
+          colors={[C.adminGold]}
+        />
+      }
     >
       <Text style={styles.title}>Reportes de acceso</Text>
 
