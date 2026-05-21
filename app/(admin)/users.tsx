@@ -149,6 +149,37 @@ export default function UsersScreen() {
     );
   };
 
+  // Acciones: Activar Empleado (Biométrico)
+  const handleActivateEmployee = (id: number, name: string) => {
+    Alert.alert(
+      "Activar empleado",
+      `¿Reactivar a ${name}? Volverá a estar habilitado para registrar accesos biométricos.`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Activar",
+          onPress: async () => {
+            try {
+              await api.activateEmployee(id, user?.id ?? "");
+              setEmployees((prev) =>
+                prev.map((e) =>
+                  e.employee_id === id ? { ...e, is_active: true } : e,
+                ),
+              );
+            } catch (error) {
+              if (__DEV__) console.error(error);
+              Alert.alert(
+                "Error",
+                (error as any)?.response?.data?.message ?? "No se pudo activar el empleado."
+              );
+            }
+          },
+        },
+      ],
+    );
+  };
+
+
   // Acciones: Desactivar Usuario del Sistema
   const handleDeactivateUser = (id: number, name: string) => {
     Alert.alert(
@@ -470,7 +501,14 @@ export default function UsersScreen() {
                 >
                   <UserMinus size={16} color={C.redAlert} />
                 </TouchableOpacity>
-              ) : null}
+              ) : (
+                <TouchableOpacity
+                  onPress={() => handleActivateEmployee(item.employee_id, item.full_name)}
+                  style={styles.actionBtn}
+                >
+                  <UserCheck size={16} color={Colors.Status.success} />
+                </TouchableOpacity>
+              )}
             </View>
           )}
         />

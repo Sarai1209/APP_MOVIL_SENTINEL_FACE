@@ -118,6 +118,10 @@ export const api = {
   deactivateEmployee: (id: number, usuarioId: number | string) =>
     client.patch(`/employees/${id}/deactivate`, { usuario_id: usuarioId }),
 
+  activateEmployee: (id: number, usuarioId: number | string) =>
+    client.patch(`/employees/${id}/activate`, { usuario_id: usuarioId }),
+
+
   getLogs: (params?: { result?: string; limit?: number }) =>
     client.get("/logs", { params }),
 
