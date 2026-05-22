@@ -9,7 +9,7 @@ import {
     Users,
     LucideIcon,
 } from "lucide-react-native";
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import {
     ActivityIndicator,
     Alert,
@@ -23,6 +23,8 @@ import {
 import { Colors } from "../../constants/theme";
 import { api } from "../../services/api";
 import { useAuthStore } from "../../store/authStore";
+import * as Haptics from "expo-haptics";
+import { useSettingsStore } from "../../store/settingsStore";
 import { AccessLog, AlertRecord, Employee } from "../../types/domain";
 
 const C = Colors.dark;
@@ -69,6 +71,8 @@ export default function DashboardScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  const prevAlertsCount = useRef<number | null>(null);
+
   const fetchDashboard = useCallback(async (showFullLoading = false) => {
     if (showFullLoading) {
       setLoading(true);
@@ -81,7 +85,24 @@ export default function DashboardScreen() {
       ]);
       setLogs(logsRes.data.logs ?? []);
       setEmployees(empRes.data.employees ?? []);
-      setAlerts(alertsRes.data.alerts ?? []);
+      
+      const newAlerts = alertsRes.data.alerts ?? [];
+      setAlerts(newAlerts);
+
+      // Si las notificaciones están activadas, dispara haptic y alerta nativa al recibir nuevas alertas no resueltas
+      const notificationsEnabled = useSettingsStore.getState().notifications;
+      if (
+        notificationsEnabled &&
+        prevAlertsCount.current !== null &&
+        newAlerts.length > prevAlertsCount.current
+      ) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+        Alert.alert(
+          "⚠️ Nueva Alerta de Seguridad",
+          "Se ha detectado un nuevo evento sospechoso no resuelto en el sistema."
+        );
+      }
+      prevAlertsCount.current = newAlerts.length;
     } catch (error) {
       if (__DEV__) console.error(error);
       Alert.alert("Error", "No se pudo cargar la información. Intenta de nuevo.");

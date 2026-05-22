@@ -1,4 +1,4 @@
-import { DarkTheme, ThemeProvider } from "@react-navigation/native";
+import { DarkTheme, DefaultTheme, ThemeProvider } from "@react-navigation/native";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { ActivityIndicator, View } from "react-native";
@@ -8,9 +8,11 @@ import { ActivityIndicator, View } from "react-native";
 import "react-native-reanimated";
 import { Colors } from "../constants/theme";
 import { useAuthStore } from "../store/authStore";
+import { useSettingsStore } from "../store/settingsStore";
 
 function RootNavigator() {
   const isLoading = useAuthStore((s) => s.isLoading);
+  const darkMode = useSettingsStore((s) => s.darkMode);
 
   if (isLoading) {
     return (
@@ -28,13 +30,13 @@ function RootNavigator() {
   }
 
   return (
-    <ThemeProvider value={DarkTheme}>
+    <ThemeProvider value={darkMode ? DarkTheme : DefaultTheme}>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" />
         <Stack.Screen name="(admin)" options={{ gestureEnabled: false }} />
         <Stack.Screen name="+not-found" />
       </Stack>
-      <StatusBar style="light" />
+      <StatusBar style={darkMode ? "light" : "dark"} />
     </ThemeProvider>
   );
 }

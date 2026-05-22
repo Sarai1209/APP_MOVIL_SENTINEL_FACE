@@ -4,7 +4,6 @@ import {
     ChevronRight,
     LogOut,
     Moon,
-    Sliders,
     Key,
     X,
 } from "lucide-react-native";
@@ -25,6 +24,7 @@ import { Colors } from "../../constants/theme";
 import { useAuthStore } from "../../store/authStore";
 import { api } from "../../services/api";
 import { LinearGradient } from "expo-linear-gradient";
+import { useSettingsStore } from "../../store/settingsStore";
 
 const C = Colors.dark;
 
@@ -68,23 +68,13 @@ export default function SettingsScreen() {
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
   const router = useRouter();
-  const [notifications, setNotifications] = useState(true);
-  const [darkMode, setDarkMode] = useState(true);
-  const [sensitivity, setSensitivity] = useState<"Alta" | "Media" | "Baja">(
-    "Alta",
-  );
+  const { darkMode, notifications, setDarkMode, setNotifications } = useSettingsStore();
 
   const [passwordModalVisible, setPasswordModalVisible] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [changeLoading, setChangeLoading] = useState(false);
-
-  const cycleSensitivity = () => {
-    setSensitivity((p) =>
-      p === "Alta" ? "Media" : p === "Media" ? "Baja" : "Alta",
-    );
-  };
 
   const handleChangePasswordSubmit = async () => {
     if (!currentPassword.trim() || !newPassword.trim() || !confirmPassword.trim()) {
@@ -170,13 +160,6 @@ export default function SettingsScreen() {
           isSwitch
           switchValue={darkMode}
           onToggle={setDarkMode}
-        />
-        <SettingRow
-          icon={Sliders}
-          color={C.adminGold}
-          label="Sensibilidad de reconocimiento"
-          value={sensitivity}
-          onPress={cycleSensitivity}
         />
       </View>
 

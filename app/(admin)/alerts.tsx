@@ -7,7 +7,7 @@ import {
     Info,
     ShieldAlert,
 } from "lucide-react-native";
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import {
     ActivityIndicator,
     Alert,
@@ -21,6 +21,8 @@ import {
 import { Colors } from "../../constants/theme";
 import { api } from "../../services/api";
 import { useAuthStore } from "../../store/authStore";
+import * as Haptics from "expo-haptics";
+import { useSettingsStore } from "../../store/settingsStore";
 import { AlertRecord } from "../../types/domain";
 
 type FilterKey = "all" | "SPOOFING_ATTEMPT" | "UNKNOWN_FACE" | "resolved";
@@ -63,6 +65,8 @@ export default function AlertsScreen() {
   const [refreshing,     setRefreshing]     = useState(false);
   const [filter,         setFilter]         = useState<FilterKey>("all");
 
+  const prevAlertsCount = useRef<number | null>(null);
+
   const fetchAlerts = useCallback(async (showFullLoading = false) => {
     if (showFullLoading) {
       setLoading(true);
@@ -72,8 +76,24 @@ export default function AlertsScreen() {
         api.getAlerts(0),
         api.getAlerts(1),
       ]);
-      setActiveAlerts(activeRes.data.alerts ?? []);
+      const newAlerts = activeRes.data.alerts ?? [];
+      setActiveAlerts(newAlerts);
       setResolvedAlerts(resolvedRes.data.alerts ?? []);
+
+      // Si las notificaciones están activadas, dispara haptic y alerta nativa al recibir nuevas alertas no resueltas
+      const notificationsEnabled = useSettingsStore.getState().notifications;
+      if (
+        notificationsEnabled &&
+        prevAlertsCount.current !== null &&
+        newAlerts.length > prevAlertsCount.current
+      ) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+        Alert.alert(
+          "⚠️ Nueva Alerta de Seguridad",
+          "Se ha detectado un nuevo evento sospechoso no resuelto en el sistema."
+        );
+      }
+      prevAlertsCount.current = newAlerts.length;
     } catch (error) {
       if (__DEV__) console.error(error);
       Alert.alert("Error", "No se pudieron cargar las alertas. Intenta de nuevo.");
