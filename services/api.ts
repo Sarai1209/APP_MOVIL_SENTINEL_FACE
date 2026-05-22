@@ -125,12 +125,12 @@ export const api = {
     client.patch(`/employees/${id}/activate`, { usuario_id: usuarioId }),
 
 
-  getLogs: (params?: { result?: string; limit?: number }) =>
+  getLogs: (params?: { result?: string; limit?: number; page?: number }) =>
     client.get("/logs", { params }),
 
-  getAlerts: (resolved?: 0 | 1) =>
+  getAlerts: (resolved?: 0 | 1, page = 1) =>
     client.get("/alerts", {
-      params: resolved !== undefined ? { resolved } : {},
+      params: resolved !== undefined ? { resolved, page } : { page },
     }),
 
   getAlert: (id: number) => client.get(`/alerts/${id}`),
@@ -138,7 +138,7 @@ export const api = {
   resolveAlert: (id: number, usuarioId: number | string) =>
     client.patch(`/alerts/${id}/resolve`, { usuario_id: usuarioId }),
 
-  getAudit: (limit = 50) => client.get("/audit", { params: { limit } }),
+  getAudit: (limit = 20, page = 1) => client.get("/audit", { params: { limit, page } }),
 
   recognize: (formData: FormData) =>
     client.post("/recognize", formData, {

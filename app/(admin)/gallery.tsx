@@ -129,36 +129,48 @@ export default function GalleryScreen() {
   const [logs, setLogs] = useState<AccessLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const [filter, setFilter] = useState<FilterKey>("all");
   const cacheBusterRef = useRef<number>(Date.now());
+  const pageRef = useRef(1);
+  const PAGE_SIZE = 30;
 
-  const fetchLogs = useCallback(async (showFullLoading = false) => {
-    if (showFullLoading) {
-      setLoading(true);
-    }
-    cacheBusterRef.current = Date.now();
+  const fetchLogs = useCallback(async (page: number, replace: boolean) => {
+    if (page === 1) replace ? setLoading(true) : setRefreshing(true);
+    else setLoadingMore(true);
+    if (replace) cacheBusterRef.current = Date.now();
     try {
-      const res = await api.getLogs();
-      setLogs(res.data.logs ?? []);
+      const res = await api.getLogs({ limit: PAGE_SIZE, page });
+      const { logs: items = [], has_more = false } = res.data;
+      setLogs((prev) => (page === 1 ? items : [...prev, ...items]));
+      setHasMore(has_more);
+      pageRef.current = page;
     } catch (error) {
       if (__DEV__) console.error(error);
-      customAlert("Error", "No se pudo cargar la galería. Intenta de nuevo.");
+      customAlert("Error", "No se pudo cargar la galeria. Intenta de nuevo.");
     } finally {
       setLoading(false);
       setRefreshing(false);
+      setLoadingMore(false);
     }
   }, []);
 
   useFocusEffect(
     useCallback(() => {
-      fetchLogs(true);
+      fetchLogs(1, true);
     }, [fetchLogs])
   );
 
   const onRefresh = useCallback(() => {
-    setRefreshing(true);
-    fetchLogs(false);
+    fetchLogs(1, false);
   }, [fetchLogs]);
+
+  const onEndReached = useCallback(() => {
+    if (!loadingMore && !refreshing && hasMore) {
+      fetchLogs(pageRef.current + 1, false);
+    }
+  }, [loadingMore, refreshing, hasMore, fetchLogs]);
 
   const displayed = logs.filter((l) => {
     if (filter === "all") return true;
@@ -190,61 +202,66 @@ export default function GalleryScreen() {
       colors={C.gradients.bg}
       style={styles.bg}
     >
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.title}>Galería de accesos</Text>
-          <Text style={styles.sub}>
-            Capturas registradas por las cámaras del sistema
-          </Text>
-        </View>
-      </View>
-
-      <View style={styles.summary}>
-        {[
-          { label: "Accesos", value: granted, color: C.success },
-          { label: "Negados", value: denied, color: C.error },
-          { label: "Spoofing", value: spoofing, color: C.warning },
-        ].map((s, i) => (
-          <View
-            key={i}
-            style={[styles.summaryCard, { borderColor: `${s.color}30` }]}
-          >
-            <Text style={[styles.summaryVal, { color: s.color }]}>
-              {s.value}
+      {/* Seccion fija: encabezado + tarjetas + filtros */}
+      <View>
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.title}>Galeria de accesos</Text>
+            <Text style={styles.sub}>
+              Capturas registradas por las camaras del sistema
             </Text>
-            <Text style={styles.summaryLbl}>{s.label}</Text>
           </View>
-        ))}
+        </View>
+
+        <View style={styles.summary}>
+          {[
+            { label: "Accesos", value: granted, color: C.success },
+            { label: "Negados", value: denied, color: C.error },
+            { label: "Spoofing", value: spoofing, color: C.warning },
+          ].map((s, i) => (
+            <View
+              key={i}
+              style={[styles.summaryCard, { borderColor: `${s.color}30` }]}
+            >
+              <Text style={[styles.summaryVal, { color: s.color }]}>
+                {s.value}
+              </Text>
+              <Text style={styles.summaryLbl}>{s.label}</Text>
+            </View>
+          ))}
+        </View>
+
+        <FlatList
+          horizontal
+          data={FILTERS}
+          keyExtractor={(f) => f.key}
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filtersWrap}
+          style={styles.filtersScroll}
+          renderItem={({ item: f }) => (
+            <TouchableOpacity
+              style={[
+                styles.filterBtn,
+                filter === f.key && styles.filterBtnActive,
+              ]}
+              onPress={() => setFilter(f.key)}
+            >
+              <Text
+                style={[
+                  styles.filterTxt,
+                  filter === f.key && styles.filterTxtActive,
+                ]}
+              >
+                {f.label}
+              </Text>
+            </TouchableOpacity>
+          )}
+        />
       </View>
 
+      {/* Grid de imagenes — ocupa el espacio restante */}
       <FlatList
-        horizontal
-        data={FILTERS}
-        keyExtractor={(f) => f.key}
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.filtersWrap}
-        style={styles.filtersScroll}
-        renderItem={({ item: f }) => (
-          <TouchableOpacity
-            style={[
-              styles.filterBtn,
-              filter === f.key && styles.filterBtnActive,
-            ]}
-            onPress={() => setFilter(f.key)}
-          >
-            <Text
-              style={[
-                styles.filterTxt,
-                filter === f.key && styles.filterTxtActive,
-              ]}
-            >
-              {f.label}
-            </Text>
-          </TouchableOpacity>
-        )}
-      />
-
-      <FlatList
+        style={styles.gridList}
         data={displayed}
         keyExtractor={(item) => String(item.log_id)}
         numColumns={COL}
@@ -254,7 +271,7 @@ export default function GalleryScreen() {
         ListEmptyComponent={
           <View style={styles.empty}>
             <ImageIcon size={40} color={C.textSubtle} />
-            <Text style={styles.emptyTxt}>Sin capturas en esta categoría</Text>
+            <Text style={styles.emptyTxt}>Sin capturas en esta categoria</Text>
           </View>
         }
         refreshControl={
@@ -265,6 +282,15 @@ export default function GalleryScreen() {
             colors={[C.adminGold]}
           />
         }
+        onEndReached={onEndReached}
+        onEndReachedThreshold={0.4}
+        ListFooterComponent={
+          loadingMore ? (
+            <View style={{ alignItems: "center", paddingVertical: 16 }}>
+              <ActivityIndicator size="small" color={C.adminGold} />
+            </View>
+          ) : null
+        }
         renderItem={({ item }) => <SnapshotTile item={item} token={token} cacheBuster={cacheBusterRef.current} />}
       />
     </LinearGradient>
@@ -273,6 +299,7 @@ export default function GalleryScreen() {
 
 const getStyles = (C: any) => StyleSheet.create({
   bg: { flex: 1 },
+  gridList: { flex: 1 },
   header: { paddingHorizontal: 20, paddingTop: 60, paddingBottom: 12 },
   title: { fontSize: 22, fontWeight: "700", color: C.text },
   sub: { fontSize: 12, color: C.textMuted, marginTop: 3 },
@@ -287,20 +314,26 @@ const getStyles = (C: any) => StyleSheet.create({
     backgroundColor: C.surface,
     borderRadius: 12,
     borderWidth: 1,
-    paddingVertical: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
     alignItems: "center",
+    justifyContent: "center",
+    minHeight: 64,
   },
-  summaryVal: { fontSize: 20, fontWeight: "800" },
-  summaryLbl: { color: C.textMuted, fontSize: 10, marginTop: 2 },
-  filtersScroll: { flexGrow: 0 },
-  filtersWrap: { paddingHorizontal: 20, gap: 8, paddingBottom: 12 },
+  summaryVal: { fontSize: 20, fontWeight: "800", includeFontPadding: false },
+  summaryLbl: { color: C.textMuted, fontSize: 10, marginTop: 3, includeFontPadding: false },
+  filtersScroll: { flexGrow: 0, marginBottom: 12 },
+  filtersWrap: { paddingHorizontal: 20, gap: 8, paddingBottom: 4 },
   filterBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     borderRadius: 20,
     backgroundColor: C.surface,
     borderWidth: 1,
     borderColor: C.border,
+    minHeight: 34,
+    alignItems: "center",
+    justifyContent: "center",
   },
   filterBtnActive: {
     backgroundColor: `${C.adminGold}18`,

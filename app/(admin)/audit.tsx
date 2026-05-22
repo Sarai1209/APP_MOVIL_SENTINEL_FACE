@@ -13,7 +13,7 @@ import {
     Terminal,
     User,
 } from "lucide-react-native";
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import {
     ActivityIndicator,
     FlatList,
@@ -99,34 +99,46 @@ export default function AuditScreen() {
   const [logs, setLogs] = useState<AuditEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const [search, setSearch] = useState("");
+  const pageRef = useRef(1);
+  const PAGE_SIZE = 30;
 
-  const fetchLogs = useCallback(async (showFullLoading = false) => {
-    if (showFullLoading) {
-      setLoading(true);
-    }
+  const fetchLogs = useCallback(async (page: number, replace: boolean) => {
+    if (page === 1) replace ? setLoading(true) : setRefreshing(true);
+    else setLoadingMore(true);
     try {
-      const res = await api.getAudit(150); // Cargar los últimos 150 registros
-      setLogs(res.data.audit ?? []);
+      const res = await api.getAudit(PAGE_SIZE, page);
+      const { audit: items = [], has_more = false } = res.data;
+      setLogs((prev) => (page === 1 ? items : [...prev, ...items]));
+      setHasMore(has_more);
+      pageRef.current = page;
     } catch (error) {
       if (__DEV__) console.error(error);
-      customAlert("Error", "No se pudieron cargar los registros de auditoría.");
+      customAlert("Error", "No se pudieron cargar los registros de auditoria.");
     } finally {
       setLoading(false);
       setRefreshing(false);
+      setLoadingMore(false);
     }
   }, []);
 
   useFocusEffect(
     useCallback(() => {
-      fetchLogs(logs.length === 0);
-    }, [fetchLogs, logs.length])
+      fetchLogs(1, true);
+    }, [fetchLogs])
   );
 
   const onRefresh = useCallback(() => {
-    setRefreshing(true);
-    fetchLogs(false);
+    fetchLogs(1, false);
   }, [fetchLogs]);
+
+  const onEndReached = useCallback(() => {
+    if (!loadingMore && !refreshing && hasMore) {
+      fetchLogs(pageRef.current + 1, false);
+    }
+  }, [loadingMore, refreshing, hasMore, fetchLogs]);
 
   const filteredLogs = logs.filter((log) => {
     const term = search.toLowerCase();
@@ -185,6 +197,15 @@ export default function AuditScreen() {
             tintColor={C.adminGold}
             colors={[C.adminGold]}
           />
+        }
+        onEndReached={search ? undefined : onEndReached}
+        onEndReachedThreshold={0.4}
+        ListFooterComponent={
+          loadingMore ? (
+            <View style={{ alignItems: "center", paddingVertical: 16 }}>
+              <ActivityIndicator size="small" color={C.adminGold} />
+            </View>
+          ) : null
         }
         ItemSeparatorComponent={() => <View style={styles.separator} />}
         ListEmptyComponent={

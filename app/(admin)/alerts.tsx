@@ -10,6 +10,7 @@ import {
 import React, { useState, useCallback, useRef } from "react";
 import {
     ActivityIndicator,
+    FlatList,
     RefreshControl,
     ScrollView,
     StyleSheet,
@@ -66,40 +67,60 @@ export default function AlertsScreen() {
   const [filter,         setFilter]         = useState<FilterKey>("all");
 
   const prevAlertsCount = useRef<number | null>(null);
+  const resolvedPageRef = useRef(1);
+  const [loadingMoreResolved, setLoadingMoreResolved] = useState(false);
+  const [hasMoreResolved, setHasMoreResolved] = useState(true);
+  const PAGE_SIZE = 20;
 
-  const fetchAlerts = useCallback(async (showFullLoading = false) => {
-    if (showFullLoading) {
-      setLoading(true);
+  const fetchAlerts = useCallback(async (showFullLoading = false, resolvedPage = 1) => {
+    if (resolvedPage === 1) {
+      if (showFullLoading) setLoading(true);
+      else setRefreshing(true);
+    } else {
+      setLoadingMoreResolved(true);
     }
     try {
-      const [activeRes, resolvedRes] = await Promise.all([
-        api.getAlerts(0),
-        api.getAlerts(1),
-      ]);
-      const newAlerts = activeRes.data.alerts ?? [];
-      setActiveAlerts(newAlerts);
-      setResolvedAlerts(resolvedRes.data.alerts ?? []);
+      if (resolvedPage === 1) {
+        // Siempre carga todas las activas (son pocas) + primera página de resueltas
+        const [activeRes, resolvedRes] = await Promise.all([
+          api.getAlerts(0),
+          api.getAlerts(1, 1),
+        ]);
+        const newAlerts = activeRes.data.alerts ?? [];
+        setActiveAlerts(newAlerts);
+        const resolvedItems = resolvedRes.data.alerts ?? [];
+        setResolvedAlerts(resolvedItems);
+        setHasMoreResolved(resolvedRes.data.has_more ?? false);
+        resolvedPageRef.current = 1;
 
-      // Si las notificaciones están activadas, dispara haptic y alerta nativa al recibir nuevas alertas no resueltas
-      const notificationsEnabled = useSettingsStore.getState().notifications;
-      if (
-        notificationsEnabled &&
-        prevAlertsCount.current !== null &&
-        newAlerts.length > prevAlertsCount.current
-      ) {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
-        customAlert(
-          "⚠️ Nueva Alerta de Seguridad",
-          "Se ha detectado un nuevo evento sospechoso no resuelto en el sistema."
-        );
+        const notificationsEnabled = useSettingsStore.getState().notifications;
+        if (
+          notificationsEnabled &&
+          prevAlertsCount.current !== null &&
+          newAlerts.length > prevAlertsCount.current
+        ) {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+          customAlert(
+            "⚠️ Nueva Alerta de Seguridad",
+            "Se ha detectado un nuevo evento sospechoso no resuelto en el sistema."
+          );
+        }
+        prevAlertsCount.current = newAlerts.length;
+      } else {
+        // Solo carga más resueltas
+        const resolvedRes = await api.getAlerts(1, resolvedPage);
+        const resolvedItems = resolvedRes.data.alerts ?? [];
+        setResolvedAlerts((prev) => [...prev, ...resolvedItems]);
+        setHasMoreResolved(resolvedRes.data.has_more ?? false);
+        resolvedPageRef.current = resolvedPage;
       }
-      prevAlertsCount.current = newAlerts.length;
     } catch (error) {
       if (__DEV__) console.error(error);
       customAlert("Error", "No se pudieron cargar las alertas. Intenta de nuevo.");
     } finally {
       setLoading(false);
       setRefreshing(false);
+      setLoadingMoreResolved(false);
     }
   }, []);
 
@@ -110,9 +131,14 @@ export default function AlertsScreen() {
   );
 
   const onRefresh = useCallback(() => {
-    setRefreshing(true);
-    fetchAlerts(false);
+    fetchAlerts(false, 1);
   }, [fetchAlerts]);
+
+  const onEndReachedResolved = useCallback(() => {
+    if (!loadingMoreResolved && !refreshing && hasMoreResolved) {
+      fetchAlerts(false, resolvedPageRef.current + 1);
+    }
+  }, [loadingMoreResolved, refreshing, hasMoreResolved, fetchAlerts]);
 
   const displayed =
     filter === "resolved"
@@ -197,7 +223,9 @@ export default function AlertsScreen() {
         ))}
       </ScrollView>
 
-      <ScrollView
+      <FlatList
+        data={displayed}
+        keyExtractor={(alert) => String(alert.alert_id)}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -208,8 +236,16 @@ export default function AlertsScreen() {
             colors={[C.adminGold]}
           />
         }
-      >
-        {displayed.length === 0 ? (
+        onEndReached={filter === "resolved" ? onEndReachedResolved : undefined}
+        onEndReachedThreshold={0.4}
+        ListFooterComponent={
+          loadingMoreResolved && filter === "resolved" ? (
+            <View style={{ alignItems: "center", paddingVertical: 16 }}>
+              <ActivityIndicator size="small" color={C.adminGold} />
+            </View>
+          ) : null
+        }
+        ListEmptyComponent={
           <View style={styles.empty}>
             <Bell size={40} color={C.textSubtle} />
             <Text style={styles.emptyTxt}>
@@ -218,65 +254,64 @@ export default function AlertsScreen() {
                 : "Sin alertas pendientes"}
             </Text>
           </View>
-        ) : (
-          displayed.map((alert) => {
-            const color = severityColor(alert.severity, C);
-            return (
-              <TouchableOpacity
-                key={alert.alert_id}
-                style={[
-                  styles.card,
-                  { borderColor: color, backgroundColor: `${color}10` },
-                ]}
-                onPress={() =>
-                  router.push(`/(admin)/alert-detail?id=${alert.alert_id}`)
-                }
-                activeOpacity={0.8}
+        }
+        renderItem={({ item: alert }) => {
+          const color = severityColor(alert.severity, C);
+          return (
+            <TouchableOpacity
+              key={alert.alert_id}
+              style={[
+                styles.card,
+                { borderColor: color, backgroundColor: `${color}10` },
+              ]}
+              onPress={() =>
+                router.push(`/(admin)/alert-detail?id=${alert.alert_id}`)
+              }
+              activeOpacity={0.8}
+            >
+              <View
+                style={[styles.iconWrap, { backgroundColor: `${color}18` }]}
               >
+                {alertIcon(alert.alert_type, color)}
+              </View>
+              <View style={styles.body}>
+                <Text style={styles.alertTitle}>
+                  {alert.alert_type?.replace(/_/g, " ")}
+                </Text>
+                <Text style={styles.alertDesc} numberOfLines={2}>
+                  {alert.description}
+                </Text>
+                <Text style={styles.alertTime}>
+                  {timeAgo(alert.created_at)}
+                </Text>
+              </View>
+              <View style={styles.cardRight}>
                 <View
-                  style={[styles.iconWrap, { backgroundColor: `${color}18` }]}
+                  style={[
+                    styles.severityBadge,
+                    {
+                      backgroundColor: `${color}20`,
+                      borderColor: `${color}40`,
+                    },
+                  ]}
                 >
-                  {alertIcon(alert.alert_type, color)}
-                </View>
-                <View style={styles.body}>
-                  <Text style={styles.alertTitle}>
-                    {alert.alert_type?.replace(/_/g, " ")}
-                  </Text>
-                  <Text style={styles.alertDesc} numberOfLines={2}>
-                    {alert.description}
-                  </Text>
-                  <Text style={styles.alertTime}>
-                    {timeAgo(alert.created_at)}
+                  <Text style={[styles.severityText, { color }]}>
+                    {alert.severity}
                   </Text>
                 </View>
-                <View style={styles.cardRight}>
-                  <View
-                    style={[
-                      styles.severityBadge,
-                      {
-                        backgroundColor: `${color}20`,
-                        borderColor: `${color}40`,
-                      },
-                    ]}
+                {!alert.resolved && (
+                  <TouchableOpacity
+                    style={styles.markBtn}
+                    onPress={() => resolveAlert(alert.alert_id)}
                   >
-                    <Text style={[styles.severityText, { color }]}>
-                      {alert.severity}
-                    </Text>
-                  </View>
-                  {!alert.resolved && (
-                    <TouchableOpacity
-                      style={styles.markBtn}
-                      onPress={() => resolveAlert(alert.alert_id)}
-                    >
-                      <CheckCircle size={20} color={C.success} />
-                    </TouchableOpacity>
-                  )}
-                </View>
-              </TouchableOpacity>
-            );
-          })
-        )}
-      </ScrollView>
+                    <CheckCircle size={20} color={C.success} />
+                  </TouchableOpacity>
+                )}
+              </View>
+            </TouchableOpacity>
+          );
+        }}
+      />
     </LinearGradient>
   );
 }
