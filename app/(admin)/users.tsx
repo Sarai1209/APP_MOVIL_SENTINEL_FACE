@@ -1,6 +1,6 @@
 import { useRouter, useFocusEffect } from "expo-router";
 import { Search, UserMinus, UserPlus, Shield, UserCheck, X, Check } from "lucide-react-native";
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback } from "react";
 import {
     ActivityIndicator,
     Alert,
@@ -53,15 +53,6 @@ export default function UsersScreen() {
   const [selectedUser, setSelectedUser] = useState<Usuario | null>(null);
   const [updatingRoleId, setUpdatingRoleId] = useState<number | null>(null);
 
-  const fetchAvailableRoles = async () => {
-    try {
-      const res = await api.getRoles(false); // Solo roles activos
-      setAvailableRoles(res.data.roles ?? []);
-    } catch (error) {
-      if (__DEV__) console.error("Error cargando roles disponibles:", error);
-    }
-  };
-
   const fetchData = useCallback(async (showFullLoading = false) => {
     if (showFullLoading) {
       setLoading(true);
@@ -71,8 +62,12 @@ export default function UsersScreen() {
         const res = await api.getEmployees();
         setEmployees(res.data.employees ?? []);
       } else {
-        const res = await api.getUsuarios(true); // include_inactive = true
-        setSystemUsers(res.data.usuarios ?? []);
+        const [resUsers, resRoles] = await Promise.all([
+          api.getUsuarios(true), // include_inactive = true
+          api.getRoles(false)     // Solo roles activos
+        ]);
+        setSystemUsers(resUsers.data.usuarios ?? []);
+        setAvailableRoles(resRoles.data.roles ?? []);
       }
     } catch (error) {
       if (__DEV__) console.error(error);
@@ -82,11 +77,6 @@ export default function UsersScreen() {
       setRefreshing(false);
     }
   }, [activeTab]);
-
-  // Cargar roles del sistema una sola vez al montar
-  useEffect(() => {
-    fetchAvailableRoles();
-  }, []);
 
   // Recarga automática de datos al enfocar la pantalla o cambiar de pestaña
   useFocusEffect(
