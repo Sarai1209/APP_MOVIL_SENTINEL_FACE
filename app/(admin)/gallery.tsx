@@ -7,7 +7,7 @@ import {
     ShieldAlert,
     XCircle,
 } from "lucide-react-native";
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import {
     ActivityIndicator,
     Dimensions,
@@ -54,9 +54,10 @@ function timeStr(iso: string) {
 interface SnapshotTileProps {
   item: AccessLog;
   token: string | null;
+  cacheBuster: number;
 }
 
-function SnapshotTile({ item, token }: SnapshotTileProps) {
+function SnapshotTile({ item, token, cacheBuster }: SnapshotTileProps) {
   const C = useThemeColors();
   const styles = React.useMemo(() => getStyles(C), [C]);
   const ok = item.access_result === "GRANTED";
@@ -88,7 +89,7 @@ function SnapshotTile({ item, token }: SnapshotTileProps) {
         <Text style={styles.tileInitials}>{initials}</Text>
         <Image 
           source={{ 
-            uri: `${BASE_URL}/logs/${item.log_id}/image`,
+            uri: `${BASE_URL}/logs/${item.log_id}/image?t=${cacheBuster}`,
             headers: token ? { Authorization: `Bearer ${token}` } : undefined
           }} 
           style={StyleSheet.absoluteFill} 
@@ -129,11 +130,13 @@ export default function GalleryScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<FilterKey>("all");
+  const cacheBusterRef = useRef<number>(Date.now());
 
   const fetchLogs = useCallback(async (showFullLoading = false) => {
     if (showFullLoading) {
       setLoading(true);
     }
+    cacheBusterRef.current = Date.now();
     try {
       const res = await api.getLogs();
       setLogs(res.data.logs ?? []);
@@ -148,8 +151,8 @@ export default function GalleryScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      fetchLogs(logs.length === 0);
-    }, [fetchLogs, logs.length])
+      fetchLogs(true);
+    }, [fetchLogs])
   );
 
   const onRefresh = useCallback(() => {
@@ -262,7 +265,7 @@ export default function GalleryScreen() {
             colors={[C.adminGold]}
           />
         }
-        renderItem={({ item }) => <SnapshotTile item={item} token={token} />}
+        renderItem={({ item }) => <SnapshotTile item={item} token={token} cacheBuster={cacheBusterRef.current} />}
       />
     </LinearGradient>
   );
