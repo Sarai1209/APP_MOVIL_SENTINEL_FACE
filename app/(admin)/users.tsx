@@ -1,5 +1,5 @@
 import { useRouter, useFocusEffect } from "expo-router";
-import { Search, UserMinus, UserPlus, Shield, UserCheck, X, Check } from "lucide-react-native";
+import { Search, UserMinus, UserPlus, Shield, UserCheck, X, Check, Plus, ShieldCheck, ShieldOff } from "lucide-react-native";
 import React, { useState, useCallback } from "react";
 import {
     ActivityIndicator,
@@ -28,12 +28,13 @@ export default function UsersScreen() {
   const token = useAuthStore((s) => s.token);
   const router = useRouter();
 
-  // Tab: 'employees' (Personal biométrico) o 'system_users' (Usuarios con acceso al sistema)
-  const [activeTab, setActiveTab] = useState<"employees" | "system_users">("employees");
+  // Tab: 'employees' (Personal biométrico), 'system_users' (Usuarios del sistema) o 'roles' (Roles del sistema)
+  const [activeTab, setActiveTab] = useState<"employees" | "system_users" | "roles">("employees");
 
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [systemUsers, setSystemUsers] = useState<Usuario[]>([]);
   const [availableRoles, setAvailableRoles] = useState<Role[]>([]);
+  const [roles, setRoles] = useState<Role[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -48,6 +49,12 @@ export default function UsersScreen() {
   const [createRoles, setCreateRoles] = useState<string[]>([]);
   const [createLoading, setCreateLoading] = useState(false);
 
+  // Modal Crear Nuevo Rol
+  const [createRoleModalVisible, setCreateRoleModalVisible] = useState(false);
+  const [roleName, setRoleName] = useState("");
+  const [roleDesc, setRoleDesc] = useState("");
+  const [createRoleLoading, setCreateRoleLoading] = useState(false);
+
   // Modal Gestionar Roles
   const [rolesModalVisible, setRolesModalVisible] = useState(false);
   const [selectedUser, setSelectedUser] = useState<Usuario | null>(null);
@@ -61,13 +68,16 @@ export default function UsersScreen() {
       if (activeTab === "employees") {
         const res = await api.getEmployees();
         setEmployees(res.data.employees ?? []);
-      } else {
+      } else if (activeTab === "system_users") {
         const [resUsers, resRoles] = await Promise.all([
           api.getUsuarios(true), // include_inactive = true
           api.getRoles(false)     // Solo roles activos
         ]);
         setSystemUsers(resUsers.data.usuarios ?? []);
         setAvailableRoles(resRoles.data.roles ?? []);
+      } else if (activeTab === "roles") {
+        const res = await api.getRoles(true); // Todos los roles (activos e inactivos)
+        setRoles(res.data.roles ?? []);
       }
     } catch (error) {
       if (__DEV__) console.error(error);
@@ -81,9 +91,14 @@ export default function UsersScreen() {
   // Recarga automática de datos al enfocar la pantalla o cambiar de pestaña
   useFocusEffect(
     useCallback(() => {
-      const isEmpty = activeTab === "employees" ? employees.length === 0 : systemUsers.length === 0;
+      const isEmpty =
+        activeTab === "employees"
+          ? employees.length === 0
+          : activeTab === "system_users"
+          ? systemUsers.length === 0
+          : roles.length === 0;
       fetchData(isEmpty);
-    }, [fetchData, activeTab, employees.length, systemUsers.length])
+    }, [fetchData, activeTab, employees.length, systemUsers.length, roles.length])
   );
 
   const onRefresh = useCallback(() => {
@@ -107,6 +122,93 @@ export default function UsersScreen() {
     const matchStatus = showInactive ? true : u.is_active;
     return matchSearch && matchStatus;
   });
+
+  const filteredRoles = roles.filter((r) => {
+    const matchSearch =
+      r.name.toLowerCase().includes(search.toLowerCase()) ||
+      (r.description && r.description.toLowerCase().includes(search.toLowerCase()));
+    const matchStatus = showInactive ? true : r.is_active;
+    return matchSearch && matchStatus;
+  });
+
+  const handleDeactivateRole = (id: number, name: string) => {
+    Alert.alert(
+      "Desactivar rol",
+      `¿Desactivar el rol "${name}"? Los usuarios que lo tengan asignado no lo perderán pero no se podrá asignar a nuevos usuarios.`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Desactivar",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await api.deactivateRole(id, user?.id ?? "");
+              setRoles((prev) =>
+                prev.map((r) =>
+                  r.role_id === id ? { ...r, is_active: false } : r,
+                ),
+              );
+            } catch (error) {
+              if (__DEV__) console.error(error);
+              Alert.alert(
+                "Error",
+                (error as any)?.response?.data?.message ?? "No se pudo desactivar el rol."
+              );
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  const handleActivateRole = (id: number, name: string) => {
+    Alert.alert("Activar rol", `¿Reactivar el rol "${name}"?`, [
+      { text: "Cancelar", style: "cancel" },
+      {
+        text: "Activar",
+        onPress: async () => {
+          try {
+            await api.activateRole(id, user?.id ?? "");
+            setRoles((prev) =>
+              prev.map((r) =>
+                r.role_id === id ? { ...r, is_active: true } : r,
+              ),
+            );
+          } catch (error) {
+            if (__DEV__) console.error(error);
+            Alert.alert(
+              "Error",
+              (error as any)?.response?.data?.message ?? "No se pudo activar el rol."
+            );
+          }
+        },
+      },
+    ]);
+  };
+
+  const handleCreateRoleSubmit = async () => {
+    if (!roleName.trim()) {
+      Alert.alert("Campo requerido", "El nombre del rol es obligatorio.");
+      return;
+    }
+    setCreateRoleLoading(true);
+    try {
+      const res = await api.createRole(roleName.trim(), roleDesc.trim(), user?.id ?? "");
+      setRoles((prev) => [...prev, res.data]);
+      setRoleName("");
+      setRoleDesc("");
+      setCreateRoleModalVisible(false);
+      fetchData(false);
+    } catch (error) {
+      if (__DEV__) console.error(error);
+      Alert.alert(
+        "Error",
+        (error as any)?.response?.data?.message ?? "No se pudo crear el rol."
+      );
+    } finally {
+      setCreateRoleLoading(false);
+    }
+  };
 
   // Acciones: Desactivar Empleado (Biométrico)
   const handleDeactivateEmployee = (id: number, name: string) => {
@@ -343,13 +445,22 @@ export default function UsersScreen() {
   const activeCount =
     activeTab === "employees"
       ? employees.filter((e) => e.is_active).length
-      : systemUsers.filter((u) => u.is_active).length;
+      : activeTab === "system_users"
+      ? systemUsers.filter((u) => u.is_active).length
+      : roles.filter((r) => r.is_active).length;
+
+  const titleText =
+    activeTab === "employees"
+      ? "Personal"
+      : activeTab === "system_users"
+      ? "Usuarios"
+      : "Roles";
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title} numberOfLines={1}>
-          {activeTab === "employees" ? "Personal" : "Usuarios"} ({activeCount} activos)
+          {titleText} ({activeCount} activos)
         </Text>
         <View style={styles.headerActions}>
           <TouchableOpacity
@@ -365,12 +476,18 @@ export default function UsersScreen() {
             onPress={() => {
               if (activeTab === "employees") {
                 router.push("/(admin)/register");
-              } else {
+              } else if (activeTab === "system_users") {
                 setCreateModalVisible(true);
+              } else if (activeTab === "roles") {
+                setCreateRoleModalVisible(true);
               }
             }}
           >
-            <UserPlus size={20} color={C.adminGold} />
+            {activeTab === "roles" ? (
+              <Plus size={20} color={C.adminGold} />
+            ) : (
+              <UserPlus size={20} color={C.adminGold} />
+            )}
           </TouchableOpacity>
         </View>
       </View>
@@ -385,7 +502,7 @@ export default function UsersScreen() {
           }}
         >
           <Text style={[styles.tabButtonText, activeTab === "employees" && styles.tabButtonTextActive]}>
-            Personal (Biometría)
+            Personal
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -396,7 +513,18 @@ export default function UsersScreen() {
           }}
         >
           <Text style={[styles.tabButtonText, activeTab === "system_users" && styles.tabButtonTextActive]}>
-            Usuarios Sistema
+            Usuarios
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tabButton, activeTab === "roles" && styles.tabButtonActive]}
+          onPress={() => {
+            setSearch("");
+            setActiveTab("roles");
+          }}
+        >
+          <Text style={[styles.tabButtonText, activeTab === "roles" && styles.tabButtonTextActive]}>
+            Roles
           </Text>
         </TouchableOpacity>
       </View>
@@ -408,7 +536,9 @@ export default function UsersScreen() {
           placeholder={
             activeTab === "employees"
               ? "Buscar por nombre o documento..."
-              : "Buscar por nombre o correo..."
+              : activeTab === "system_users"
+              ? "Buscar por nombre o correo..."
+              : "Buscar rol por nombre o descripción..."
           }
           placeholderTextColor={C.textMuted}
           value={search}
@@ -416,7 +546,7 @@ export default function UsersScreen() {
         />
       </View>
 
-      {activeTab === "employees" ? (
+      {activeTab === "employees" && (
         /* LISTADO DE EMPLEADOS (CON FOTO) */
         <FlatList
           data={filteredEmployees}
@@ -502,7 +632,9 @@ export default function UsersScreen() {
             </View>
           )}
         />
-      ) : (
+      )}
+
+      {activeTab === "system_users" && (
         /* LISTADO DE USUARIOS DEL SISTEMA */
         <FlatList
           data={filteredSystemUsers}
@@ -587,6 +719,102 @@ export default function UsersScreen() {
               </View>
             );
           }}
+        />
+      )}
+
+      {activeTab === "roles" && (
+        /* LISTADO DE ROLES DEL SISTEMA */
+        <FlatList
+          data={filteredRoles}
+          keyExtractor={(item) => String(item.role_id)}
+          contentContainerStyle={{ paddingBottom: 20 }}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={C.adminGold}
+              colors={[C.adminGold]}
+            />
+          }
+          ItemSeparatorComponent={() => <View style={styles.separator} />}
+          ListEmptyComponent={
+            <View style={styles.empty}>
+              <Text style={styles.emptyTxt}>
+                {search ? "Sin resultados para tu búsqueda" : "No hay roles registrados"}
+              </Text>
+            </View>
+          }
+          renderItem={({ item }) => (
+            <View style={[styles.roleRow, !item.is_active && styles.roleRowInactive]}>
+              <View
+                style={[
+                  styles.roleIcon,
+                  {
+                    backgroundColor: item.is_active
+                      ? `${C.adminGold}15`
+                      : `${C.textMuted}15`,
+                  },
+                ]}
+              >
+                {item.is_active ? (
+                  <ShieldCheck size={20} color={C.adminGold} />
+                ) : (
+                  <ShieldOff size={20} color={C.textMuted} />
+                )}
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.roleName, !item.is_active && styles.textInactive]}>
+                  {item.name}
+                </Text>
+                {item.description ? (
+                  <Text style={styles.roleDesc} numberOfLines={1}>
+                    {item.description}
+                  </Text>
+                ) : null}
+              </View>
+              <View
+                style={[
+                  styles.statusBadge,
+                  {
+                    backgroundColor: item.is_active
+                      ? "rgba(0,229,160,0.15)"
+                      : "rgba(255,61,113,0.12)",
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.statusText,
+                    {
+                      color: item.is_active ? Colors.Status.success : Colors.Status.error,
+                    },
+                  ]}
+                >
+                  {item.is_active ? "Activo" : "Inactivo"}
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={styles.actionBtn}
+                onPress={() =>
+                  item.is_active
+                    ? handleDeactivateRole(item.role_id, item.name)
+                    : handleActivateRole(item.role_id, item.name)
+                }
+              >
+                <Text
+                  style={[
+                    styles.roleActionTxt,
+                    {
+                      color: item.is_active ? C.redAlert : Colors.Status.success,
+                    },
+                  ]}
+                >
+                  {item.is_active ? "Desactivar" : "Activar"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
         />
       )}
 
@@ -772,6 +1000,84 @@ export default function UsersScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* MODAL: NUEVO ROL */}
+      <Modal
+        visible={createRoleModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setCreateRoleModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Nuevo Rol</Text>
+              <TouchableOpacity
+                onPress={() => {
+                  setCreateRoleModalVisible(false);
+                  setRoleName("");
+                  setRoleDesc("");
+                }}
+              >
+                <X size={20} color={C.text} />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.modalLabel}>NOMBRE *</Text>
+            <TextInput
+              style={styles.modalInput}
+              placeholder="ej: supervisor"
+              placeholderTextColor={C.textMuted}
+              value={roleName}
+              onChangeText={setRoleName}
+              autoCapitalize="none"
+            />
+
+            <Text style={styles.modalLabel}>DESCRIPCIÓN</Text>
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Describe las responsabilidades..."
+              placeholderTextColor={C.textMuted}
+              value={roleDesc}
+              onChangeText={setRoleDesc}
+              multiline
+            />
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.cancelBtn}
+                disabled={createRoleLoading}
+                onPress={() => {
+                  setCreateRoleModalVisible(false);
+                  setRoleName("");
+                  setRoleDesc("");
+                }}
+              >
+                <Text style={styles.cancelTxt}>Cancelar</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={[styles.createBtn, createRoleLoading && { opacity: 0.6 }]}
+                disabled={createRoleLoading}
+                onPress={handleCreateRoleSubmit}
+              >
+                <LinearGradient
+                  colors={Colors.Gradients.admin as any}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.createGrad}
+                >
+                  {createRoleLoading ? (
+                    <ActivityIndicator size="small" color="white" />
+                  ) : (
+                    <Text style={styles.createTxt}>Crear rol</Text>
+                  )}
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -912,6 +1218,14 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   actionBtn: { padding: 8 },
+
+  // Role styles
+  roleRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12 },
+  roleRowInactive: { opacity: 0.55 },
+  roleIcon: { width: 40, height: 40, borderRadius: 10, alignItems: "center", justifyContent: "center" },
+  roleName: { color: C.text, fontSize: 15, fontWeight: "600", textTransform: "capitalize" },
+  roleDesc: { color: C.textMuted, fontSize: 12, marginTop: 2 },
+  roleActionTxt: { fontSize: 12, fontWeight: "600" },
 
   // Modal styles
   modalOverlay: {

@@ -76,7 +76,6 @@ export default function AdminLayout() {
       <Tabs.Screen name="history" options={{ href: null }} />
       <Tabs.Screen name="profile" options={{ href: null }} />
       <Tabs.Screen name="register" options={{ href: null }} />
-      <Tabs.Screen name="roles" options={{ href: null }} />
     </Tabs>
   );
 }

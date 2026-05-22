@@ -4,21 +4,27 @@ import {
     ChevronRight,
     LogOut,
     Moon,
-    Shield,
     Sliders,
+    Key,
+    X,
 } from "lucide-react-native";
 import React, { useState } from "react";
 import {
+    ActivityIndicator,
     Alert,
+    Modal,
     ScrollView,
     StyleSheet,
     Switch,
     Text,
+    TextInput,
     TouchableOpacity,
     View,
 } from "react-native";
 import { Colors } from "../../constants/theme";
 import { useAuthStore } from "../../store/authStore";
+import { api } from "../../services/api";
+import { LinearGradient } from "expo-linear-gradient";
 
 const C = Colors.dark;
 
@@ -68,10 +74,49 @@ export default function SettingsScreen() {
     "Alta",
   );
 
+  const [passwordModalVisible, setPasswordModalVisible] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [changeLoading, setChangeLoading] = useState(false);
+
   const cycleSensitivity = () => {
     setSensitivity((p) =>
       p === "Alta" ? "Media" : p === "Media" ? "Baja" : "Alta",
     );
+  };
+
+  const handleChangePasswordSubmit = async () => {
+    if (!currentPassword.trim() || !newPassword.trim() || !confirmPassword.trim()) {
+      Alert.alert("Campos requeridos", "Por favor completa todos los campos.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      Alert.alert("Error de validación", "La nueva contraseña y su confirmación no coinciden.");
+      return;
+    }
+    if (newPassword.length < 6) {
+      Alert.alert("Error de validación", "La nueva contraseña debe tener al menos 6 caracteres.");
+      return;
+    }
+
+    setChangeLoading(true);
+    try {
+      await api.changePassword(currentPassword, newPassword);
+      Alert.alert("Éxito", "Tu contraseña ha sido cambiada correctamente.");
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setPasswordModalVisible(false);
+    } catch (error) {
+      if (__DEV__) console.error(error);
+      Alert.alert(
+        "Error",
+        (error as any)?.response?.data?.message ?? "No se pudo cambiar la contraseña. Verifica los datos."
+      );
+    } finally {
+      setChangeLoading(false);
+    }
   };
 
   const handleLogout = () => {
@@ -138,10 +183,10 @@ export default function SettingsScreen() {
       <Text style={styles.section}>SEGURIDAD</Text>
       <View style={styles.group}>
         <SettingRow
-          icon={Shield}
+          icon={Key}
           color={C.greenNeon}
-          label="Gestión de roles"
-          onPress={() => router.push("/(admin)/roles")}
+          label="Cambiar contraseña"
+          onPress={() => setPasswordModalVisible(true)}
         />
       </View>
 
@@ -153,6 +198,104 @@ export default function SettingsScreen() {
         <LogOut size={18} color={C.redAlert} />
         <Text style={styles.logoutText}>Cerrar sesión</Text>
       </TouchableOpacity>
+
+      {/* MODAL: CAMBIAR CONTRASEÑA */}
+      <Modal
+        visible={passwordModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => {
+          setPasswordModalVisible(false);
+          setCurrentPassword("");
+          setNewPassword("");
+          setConfirmPassword("");
+        }}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Cambiar Contraseña</Text>
+              <TouchableOpacity
+                onPress={() => {
+                  setPasswordModalVisible(false);
+                  setCurrentPassword("");
+                  setNewPassword("");
+                  setConfirmPassword("");
+                }}
+              >
+                <X size={20} color={C.text} />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.modalLabel}>CONTRASEÑA ACTUAL *</Text>
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Ingresa tu contraseña actual..."
+              placeholderTextColor={C.textMuted}
+              secureTextEntry
+              value={currentPassword}
+              onChangeText={setCurrentPassword}
+              autoCapitalize="none"
+            />
+
+            <Text style={styles.modalLabel}>NUEVA CONTRASEÑA *</Text>
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Mínimo 6 caracteres..."
+              placeholderTextColor={C.textMuted}
+              secureTextEntry
+              value={newPassword}
+              onChangeText={setNewPassword}
+              autoCapitalize="none"
+            />
+
+            <Text style={styles.modalLabel}>CONFIRMAR NUEVA CONTRASEÑA *</Text>
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Repite la nueva contraseña..."
+              placeholderTextColor={C.textMuted}
+              secureTextEntry
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              autoCapitalize="none"
+            />
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.cancelBtn}
+                disabled={changeLoading}
+                onPress={() => {
+                  setPasswordModalVisible(false);
+                  setCurrentPassword("");
+                  setNewPassword("");
+                  setConfirmPassword("");
+                }}
+              >
+                <Text style={styles.cancelTxt}>Cancelar</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={[styles.createBtn, changeLoading && { opacity: 0.6 }]}
+                disabled={changeLoading}
+                onPress={handleChangePasswordSubmit}
+              >
+                <LinearGradient
+                  colors={Colors.Gradients.admin as any}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.createGrad}
+                >
+                  {changeLoading ? (
+                    <ActivityIndicator size="small" color="white" />
+                  ) : (
+                    <Text style={styles.createTxt}>Confirmar</Text>
+                  )}
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -229,4 +372,67 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   logoutText: { color: C.redAlert, fontSize: 15, fontWeight: "600" },
+
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    justifyContent: "flex-end",
+  },
+  modalCard: {
+    backgroundColor: C.surface,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 24,
+    paddingBottom: 40,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 20,
+  },
+  modalTitle: {
+    color: C.text,
+    fontSize: 18,
+    fontWeight: "700",
+  },
+  modalLabel: {
+    color: "rgba(195,160,240,0.9)",
+    fontSize: 9,
+    fontWeight: "700",
+    letterSpacing: 2,
+    marginBottom: 8,
+    marginTop: 10,
+  },
+  modalInput: {
+    backgroundColor: C.background,
+    borderWidth: 1,
+    borderColor: C.borderStrong,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    color: C.text,
+    fontSize: 14,
+    marginBottom: 12,
+  },
+  modalActions: { flexDirection: "row", gap: 12, marginTop: 8 },
+  cancelBtn: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 12,
+    paddingVertical: 13,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cancelTxt: { color: C.textMuted, fontSize: 15, fontWeight: "600" },
+  createBtn: { flex: 1, height: 48 },
+  createGrad: {
+    flex: 1,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  createTxt: { color: "white", fontSize: 15, fontWeight: "700" },
 });

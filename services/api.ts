@@ -106,6 +106,9 @@ export const api = {
 
   refreshToken: () => client.post("/auth/refresh"),
 
+  changePassword: (currentPassword: string, newPassword: string) =>
+    client.post("/auth/change-password", { current_password: currentPassword, new_password: newPassword }),
+
   getEmployees: () => client.get("/employees"),
 
   getEmployee: (id: number) => client.get(`/employees/${id}`),
