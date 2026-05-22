@@ -1,3 +1,4 @@
+import { customAlert } from "../../store/alertStore";
 import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -5,7 +6,6 @@ import { Camera, CheckCircle, User, X } from "lucide-react-native";
 import React, { useState } from "react";
 import {
     ActivityIndicator,
-    Alert,
     Image,
     ScrollView,
     StyleSheet,
@@ -14,13 +14,13 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
-import { Colors } from "../../constants/theme";
+import { useThemeColors } from "../../constants/theme";
 import { api } from "../../services/api";
 import { useAuthStore } from "../../store/authStore";
 
-const C = Colors.dark;
-
 export default function RegisterScreen() {
+  const C = useThemeColors();
+  const styles = React.useMemo(() => getStyles(C), [C]);
   const user = useAuthStore((s) => s.user);
   const router = useRouter();
   const [name, setName] = useState("");
@@ -34,7 +34,7 @@ export default function RegisterScreen() {
     if (!perm.granted) {
       const gallery = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!gallery.granted) {
-        Alert.alert(
+        customAlert(
           "Permiso denegado",
           "Se requiere acceso a cámara o galería.",
         );
@@ -60,11 +60,11 @@ export default function RegisterScreen() {
 
   const handleRegister = async () => {
     if (!name.trim()) {
-      Alert.alert("Campo requerido", "Ingresa el nombre completo.");
+      customAlert("Campo requerido", "Ingresa el nombre completo.");
       return;
     }
     if (!photoUri) {
-      Alert.alert(
+      customAlert(
         "Foto requerida",
         "Captura o selecciona una foto del usuario.",
       );
@@ -88,7 +88,7 @@ export default function RegisterScreen() {
     } catch (error: any) {
       console.error(error);
       const msg = error?.response?.data?.message || "No se pudo registrar el usuario. Intenta de nuevo.";
-      Alert.alert("Error", msg);
+      customAlert("Error", msg);
     } finally {
       setLoading(false);
     }
@@ -97,11 +97,11 @@ export default function RegisterScreen() {
   if (success) {
     return (
       <LinearGradient
-        colors={["#12101E", "#1A1630", "#12101E"]}
+        colors={C.gradients.bg}
         style={styles.bg}
       >
         <View style={styles.successContainer}>
-          <CheckCircle size={64} color={Colors.Status.success} />
+          <CheckCircle size={64} color={C.success} />
           <Text style={styles.successTitle}>Usuario registrado</Text>
           <Text style={styles.successSub}>
             {name} fue agregado al sistema de control de acceso facial.
@@ -130,7 +130,7 @@ export default function RegisterScreen() {
 
   return (
     <LinearGradient
-      colors={["#12101E", "#1A1630", "#12101E"]}
+      colors={C.gradients.bg}
       style={styles.bg}
     >
       <View style={styles.topBar}>
@@ -208,7 +208,7 @@ export default function RegisterScreen() {
           disabled={loading}
         >
           <LinearGradient
-            colors={Colors.Gradients.admin as any}
+            colors={C.gradients.admin as any}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.btnGradient}
@@ -225,7 +225,7 @@ export default function RegisterScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (C: any) => StyleSheet.create({
   bg: { flex: 1 },
   topBar: {
     flexDirection: "row",
@@ -274,7 +274,7 @@ const styles = StyleSheet.create({
   changeTxt: { color: "white", fontSize: 13 },
   field: { marginBottom: 20 },
   label: {
-    color: "rgba(195,160,240,0.9)",
+    color: C.purpleNeon,
     fontSize: 9,
     fontWeight: "700",
     letterSpacing: 2,
@@ -330,13 +330,13 @@ const styles = StyleSheet.create({
     marginBottom: 36,
   },
   doneBtn: {
-    backgroundColor: Colors.Status.success,
+    backgroundColor: C.success,
     borderRadius: 14,
     paddingHorizontal: 36,
     paddingVertical: 14,
     marginBottom: 12,
   },
-  doneTxt: { color: "#050514", fontWeight: "700", fontSize: 16 },
+  doneTxt: { color: C.surface, fontWeight: "700", fontSize: 16 },
   newBtn: {
     borderWidth: 1,
     borderColor: C.border,

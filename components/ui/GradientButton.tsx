@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   TouchableOpacityProps,
 } from 'react-native';
-import { Colors } from '../../constants/theme';
+import { useThemeColors } from '../../constants/theme';
  
 interface Props extends TouchableOpacityProps {
   label:    string;
@@ -22,14 +22,17 @@ interface Props extends TouchableOpacityProps {
 export default function GradientButton({
   label,
   loading = false,
-  colors  = Colors.Gradients.primary as [string, string],
+  colors,
   style,
   ...rest
 }: Props) {
+  const C = useThemeColors();
+  const buttonColors = colors ?? (C.gradients.primary as [string, string]);
+
   return (
     <TouchableOpacity activeOpacity={0.85} style={style} {...rest}>
       <LinearGradient
-        colors={colors}
+        colors={buttonColors}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
         style={styles.gradient}

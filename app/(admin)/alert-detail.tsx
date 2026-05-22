@@ -4,24 +4,22 @@ import { AlertTriangle, CheckCircle, X } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 import {
     ActivityIndicator,
-    Alert,
     ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
     View,
 } from "react-native";
-import { Colors } from "../../constants/theme";
+import { useThemeColors } from "../../constants/theme";
 import { api } from "../../services/api";
 import { useAuthStore } from "../../store/authStore";
 import { AlertRecord } from "../../types/domain";
+import { customAlert } from "../../store/alertStore";
 
-const C = Colors.dark;
-
-function severityColor(s: string) {
-  if (s === "CRITICAL" || s === "HIGH") return Colors.Status.error;
-  if (s === "MEDIUM") return Colors.Status.warning;
-  return Colors.Status.info;
+function severityColor(s: string, C: any) {
+  if (s === "CRITICAL" || s === "HIGH") return C.error;
+  if (s === "MEDIUM") return C.warning;
+  return C.info;
 }
 
 function formatDate(iso: string) {
@@ -36,6 +34,8 @@ function formatDate(iso: string) {
 }
 
 export default function AlertDetailScreen() {
+  const C = useThemeColors();
+  const styles = React.useMemo(() => getStyles(C), [C]);
   const { id } = useLocalSearchParams<{ id: string }>();
   const user = useAuthStore((s) => s.user);
   const router = useRouter();
@@ -49,7 +49,7 @@ export default function AlertDetailScreen() {
         setAlert(res.data.alert ?? null);
       } catch (error) {
         if (__DEV__) console.error(error);
-        Alert.alert("Error", "No se pudo cargar el detalle de la alerta.");
+        customAlert("Error", "No se pudo cargar el detalle de la alerta.");
       } finally {
         setLoading(false);
       }
@@ -59,7 +59,7 @@ export default function AlertDetailScreen() {
 
   const handleResolve = () => {
     if (!alert) return;
-    Alert.alert(
+    customAlert(
       "Resolver alerta",
       "¿Confirmas que esta alerta ha sido atendida?",
       [
@@ -83,7 +83,7 @@ export default function AlertDetailScreen() {
               router.back();
             } catch (error) {
               if (__DEV__) console.error(error);
-              Alert.alert("Error", "No se pudo resolver la alerta.");
+              customAlert("Error", "No se pudo resolver la alerta.");
             }
           },
         },
@@ -94,10 +94,10 @@ export default function AlertDetailScreen() {
   if (loading) {
     return (
       <LinearGradient
-        colors={["#12101E", "#1A1630", "#12101E"]}
+        colors={C.gradients.bg}
         style={styles.center}
       >
-        <ActivityIndicator size="large" color={Colors.dark.adminGold} />
+        <ActivityIndicator size="large" color={C.adminGold} />
       </LinearGradient>
     );
   }
@@ -105,7 +105,7 @@ export default function AlertDetailScreen() {
   if (!alert) {
     return (
       <LinearGradient
-        colors={["#12101E", "#1A1630", "#12101E"]}
+        colors={C.gradients.bg}
         style={styles.center}
       >
         <Text style={{ color: C.textMuted }}>Alerta no encontrada</Text>
@@ -116,11 +116,11 @@ export default function AlertDetailScreen() {
     );
   }
 
-  const color = severityColor(alert.severity);
+  const color = severityColor(alert.severity, C);
 
   return (
     <LinearGradient
-      colors={["#12101E", "#1A1630", "#12101E"]}
+      colors={C.gradients.bg}
       style={styles.bg}
     >
       <View style={styles.topBar}>
@@ -141,7 +141,7 @@ export default function AlertDetailScreen() {
             style={styles.typeGradient}
           >
             {alert.resolved ? (
-              <CheckCircle size={32} color={Colors.Status.success} />
+              <CheckCircle size={32} color={C.success} />
             ) : (
               <AlertTriangle size={32} color={color} />
             )}
@@ -169,8 +169,8 @@ export default function AlertDetailScreen() {
                 styles.infoValue,
                 {
                   color: alert.resolved
-                    ? Colors.Status.success
-                    : Colors.Status.warning,
+                    ? C.success
+                    : C.warning,
                 },
               ]}
             >
@@ -213,7 +213,7 @@ export default function AlertDetailScreen() {
           </TouchableOpacity>
         ) : (
           <View style={styles.resolvedBanner}>
-            <CheckCircle size={18} color={Colors.Status.success} />
+            <CheckCircle size={18} color={C.success} />
             <Text style={styles.resolvedTxt}>Esta alerta ya fue atendida</Text>
           </View>
         )}
@@ -222,7 +222,7 @@ export default function AlertDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (C: any) => StyleSheet.create({
   bg: { flex: 1 },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   topBar: {
@@ -307,12 +307,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 10,
-    backgroundColor: Colors.Status.success,
+    backgroundColor: C.success,
     borderRadius: 14,
     paddingVertical: 15,
     marginBottom: 12,
   },
-  resolveTxt: { color: "#050514", fontSize: 16, fontWeight: "700" },
+  resolveTxt: { color: C.surface, fontSize: 16, fontWeight: "700" },
   resolvedBanner: {
     flexDirection: "row",
     alignItems: "center",
@@ -325,7 +325,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   resolvedTxt: {
-    color: Colors.Status.success,
+    color: C.success,
     fontSize: 14,
     fontWeight: "600",
   },

@@ -1,3 +1,4 @@
+import { customAlert } from "../../store/alertStore";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect } from "expo-router";
 import {
@@ -9,7 +10,6 @@ import {
 import React, { useState, useCallback } from "react";
 import {
     ActivityIndicator,
-    Alert,
     Dimensions,
     FlatList,
     RefreshControl,
@@ -19,12 +19,11 @@ import {
     View,
 } from "react-native";
 import { Image } from "expo-image";
-import { Colors } from "../../constants/theme";
+import { useThemeColors } from "../../constants/theme";
 import { api, BASE_URL } from "../../services/api";
 import { useAuthStore } from "../../store/authStore";
 import { AccessLog } from "../../types/domain";
 
-const C = Colors.dark;
 const COL = 3;
 const GAP = 8;
 const SCREEN = Dimensions.get("window").width;
@@ -58,13 +57,15 @@ interface SnapshotTileProps {
 }
 
 function SnapshotTile({ item, token }: SnapshotTileProps) {
+  const C = useThemeColors();
+  const styles = React.useMemo(() => getStyles(C), [C]);
   const ok = item.access_result === "GRANTED";
   const spoof = item.liveness === "SPOOFING";
   const color = ok
-    ? Colors.Status.success
+    ? C.success
     : spoof
-      ? Colors.Status.warning
-      : Colors.Status.error;
+      ? C.warning
+      : C.error;
   const tileBackground = ok
     ? "rgba(0, 180, 80, 0.15)"
     : spoof
@@ -121,6 +122,8 @@ function SnapshotTile({ item, token }: SnapshotTileProps) {
 }
 
 export default function GalleryScreen() {
+  const C = useThemeColors();
+  const styles = React.useMemo(() => getStyles(C), [C]);
   const token = useAuthStore((s) => s.token);
   const [logs, setLogs] = useState<AccessLog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -136,7 +139,7 @@ export default function GalleryScreen() {
       setLogs(res.data.logs ?? []);
     } catch (error) {
       if (__DEV__) console.error(error);
-      Alert.alert("Error", "No se pudo cargar la galería. Intenta de nuevo.");
+      customAlert("Error", "No se pudo cargar la galería. Intenta de nuevo.");
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -181,7 +184,7 @@ export default function GalleryScreen() {
 
   return (
     <LinearGradient
-      colors={["#12101E", "#1A1630", "#12101E"]}
+      colors={C.gradients.bg}
       style={styles.bg}
     >
       <View style={styles.header}>
@@ -195,9 +198,9 @@ export default function GalleryScreen() {
 
       <View style={styles.summary}>
         {[
-          { label: "Accesos", value: granted, color: Colors.Status.success },
-          { label: "Negados", value: denied, color: Colors.Status.error },
-          { label: "Spoofing", value: spoofing, color: Colors.Status.warning },
+          { label: "Accesos", value: granted, color: C.success },
+          { label: "Negados", value: denied, color: C.error },
+          { label: "Spoofing", value: spoofing, color: C.warning },
         ].map((s, i) => (
           <View
             key={i}
@@ -265,7 +268,7 @@ export default function GalleryScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (C: any) => StyleSheet.create({
   bg: { flex: 1 },
   header: { paddingHorizontal: 20, paddingTop: 60, paddingBottom: 12 },
   title: { fontSize: 22, fontWeight: "700", color: C.text },
@@ -297,8 +300,8 @@ const styles = StyleSheet.create({
     borderColor: C.border,
   },
   filterBtnActive: {
-    backgroundColor: "rgba(191,0,255,0.1)",
-    borderColor: "rgba(191,0,255,0.4)",
+    backgroundColor: `${C.adminGold}18`,
+    borderColor: `${C.adminGold}40`,
   },
   filterTxt: { color: C.textMuted, fontSize: 12 },
   filterTxtActive: { color: C.adminGold, fontWeight: "600" },

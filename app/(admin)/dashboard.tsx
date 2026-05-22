@@ -12,7 +12,6 @@ import {
 import React, { useState, useCallback, useRef } from "react";
 import {
     ActivityIndicator,
-    Alert,
     RefreshControl,
     ScrollView,
     StyleSheet,
@@ -20,14 +19,13 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
-import { Colors } from "../../constants/theme";
+import { useThemeColors } from "../../constants/theme";
 import { api } from "../../services/api";
 import { useAuthStore } from "../../store/authStore";
 import * as Haptics from "expo-haptics";
 import { useSettingsStore } from "../../store/settingsStore";
 import { AccessLog, AlertRecord, Employee } from "../../types/domain";
-
-const C = Colors.dark;
+import { customAlert } from "../../store/alertStore";
 
 function timeAgo(iso: string) {
   const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
@@ -41,9 +39,10 @@ interface StatCardProps {
   value: number | string;
   color: string;
   icon: LucideIcon;
+  styles: any;
 }
 
-const StatCard = ({ label, value, color, icon: Icon }: StatCardProps) => (
+const StatCard = ({ label, value, color, icon: Icon, styles }: StatCardProps) => (
   <View
     style={[
       styles.statCard,
@@ -64,6 +63,8 @@ const StatCard = ({ label, value, color, icon: Icon }: StatCardProps) => (
 export default function DashboardScreen() {
   const user = useAuthStore((s) => s.user);
   const router = useRouter();
+  const C = useThemeColors();
+  const styles = React.useMemo(() => getStyles(C), [C]);
 
   const [logs, setLogs] = useState<AccessLog[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -97,7 +98,7 @@ export default function DashboardScreen() {
         newAlerts.length > prevAlertsCount.current
       ) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
-        Alert.alert(
+        customAlert(
           "⚠️ Nueva Alerta de Seguridad",
           "Se ha detectado un nuevo evento sospechoso no resuelto en el sistema."
         );
@@ -105,7 +106,7 @@ export default function DashboardScreen() {
       prevAlertsCount.current = newAlerts.length;
     } catch (error) {
       if (__DEV__) console.error(error);
-      Alert.alert("Error", "No se pudo cargar la información. Intenta de nuevo.");
+      customAlert("Error", "No se pudo cargar la información. Intenta de nuevo.");
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -192,24 +193,28 @@ export default function DashboardScreen() {
           value={activeEmployees}
           color={C.blueNeon}
           icon={UserCheck}
+          styles={styles}
         />
         <StatCard
           label="Accesos hoy"
           value={granted}
           color={C.greenNeon}
           icon={CheckCircle}
+          styles={styles}
         />
         <StatCard
           label="Alertas"
           value={pending}
           color={C.redAlert}
           icon={AlertTriangle}
+          styles={styles}
         />
         <StatCard
           label="Total usuarios"
           value={employees.length}
           color={C.adminGold}
           icon={Users}
+          styles={styles}
         />
       </View>
 
@@ -223,8 +228,8 @@ export default function DashboardScreen() {
           .slice(0, 2)
           .toUpperCase();
         const avatarColor = isGranted
-          ? Colors.Status.success
-          : Colors.Status.error;
+          ? C.success
+          : C.error;
         return (
           <View key={item.log_id} style={styles.activityRow}>
             <View
@@ -268,7 +273,7 @@ export default function DashboardScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (C: any) => StyleSheet.create({
   container: { flex: 1, backgroundColor: C.background },
   content: { padding: 20, paddingTop: 60, paddingBottom: 30 },
 

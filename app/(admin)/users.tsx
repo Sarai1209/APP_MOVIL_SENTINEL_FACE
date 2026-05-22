@@ -3,7 +3,6 @@ import { Search, UserMinus, UserPlus, Shield, UserCheck, X, Check, Plus, ShieldC
 import React, { useState, useCallback } from "react";
 import {
     ActivityIndicator,
-    Alert,
     FlatList,
     Modal,
     RefreshControl,
@@ -15,18 +14,19 @@ import {
     Switch,
 } from "react-native";
 import { Image } from "expo-image";
-import { Colors } from "../../constants/theme";
+import { useThemeColors } from "../../constants/theme";
 import { api, BASE_URL } from "../../services/api";
 import { useAuthStore } from "../../store/authStore";
 import { Employee, Usuario, Role } from "../../types/domain";
 import { LinearGradient } from "expo-linear-gradient";
-
-const C = Colors.dark;
+import { customAlert } from "../../store/alertStore";
 
 export default function UsersScreen() {
   const user = useAuthStore((s) => s.user);
   const token = useAuthStore((s) => s.token);
   const router = useRouter();
+  const C = useThemeColors();
+  const styles = React.useMemo(() => getStyles(C), [C]);
 
   // Tab: 'employees' (Personal biométrico), 'system_users' (Usuarios del sistema) o 'roles' (Roles del sistema)
   const [activeTab, setActiveTab] = useState<"employees" | "system_users" | "roles">("employees");
@@ -81,7 +81,7 @@ export default function UsersScreen() {
       }
     } catch (error) {
       if (__DEV__) console.error(error);
-      Alert.alert("Error", "No se pudo cargar la información. Intenta de nuevo.");
+      customAlert("Error", "No se pudo cargar la información. Intenta de nuevo.");
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -132,7 +132,7 @@ export default function UsersScreen() {
   });
 
   const handleDeactivateRole = (id: number, name: string) => {
-    Alert.alert(
+    customAlert(
       "Desactivar rol",
       `¿Desactivar el rol "${name}"? Los usuarios que lo tengan asignado no lo perderán pero no se podrá asignar a nuevos usuarios.`,
       [
@@ -150,7 +150,7 @@ export default function UsersScreen() {
               );
             } catch (error) {
               if (__DEV__) console.error(error);
-              Alert.alert(
+              customAlert(
                 "Error",
                 (error as any)?.response?.data?.message ?? "No se pudo desactivar el rol."
               );
@@ -162,7 +162,7 @@ export default function UsersScreen() {
   };
 
   const handleActivateRole = (id: number, name: string) => {
-    Alert.alert("Activar rol", `¿Reactivar el rol "${name}"?`, [
+    customAlert("Activar rol", `¿Reactivar el rol "${name}"?`, [
       { text: "Cancelar", style: "cancel" },
       {
         text: "Activar",
@@ -176,7 +176,7 @@ export default function UsersScreen() {
             );
           } catch (error) {
             if (__DEV__) console.error(error);
-            Alert.alert(
+            customAlert(
               "Error",
               (error as any)?.response?.data?.message ?? "No se pudo activar el rol."
             );
@@ -188,7 +188,7 @@ export default function UsersScreen() {
 
   const handleCreateRoleSubmit = async () => {
     if (!roleName.trim()) {
-      Alert.alert("Campo requerido", "El nombre del rol es obligatorio.");
+      customAlert("Campo requerido", "El nombre del rol es obligatorio.");
       return;
     }
     setCreateRoleLoading(true);
@@ -201,7 +201,7 @@ export default function UsersScreen() {
       fetchData(false);
     } catch (error) {
       if (__DEV__) console.error(error);
-      Alert.alert(
+      customAlert(
         "Error",
         (error as any)?.response?.data?.message ?? "No se pudo crear el rol."
       );
@@ -212,7 +212,7 @@ export default function UsersScreen() {
 
   // Acciones: Desactivar Empleado (Biométrico)
   const handleDeactivateEmployee = (id: number, name: string) => {
-    Alert.alert(
+    customAlert(
       "Desactivar empleado",
       `¿Desactivar a ${name}? El registro se conserva por auditoría pero el empleado perderá acceso al sistema.`,
       [
@@ -230,7 +230,7 @@ export default function UsersScreen() {
               );
             } catch (error) {
               if (__DEV__) console.error(error);
-              Alert.alert(
+              customAlert(
                 "Error",
                 (error as any)?.response?.data?.message ?? "No se pudo desactivar el empleado."
               );
@@ -243,7 +243,7 @@ export default function UsersScreen() {
 
   // Acciones: Activar Empleado (Biométrico)
   const handleActivateEmployee = (id: number, name: string) => {
-    Alert.alert(
+    customAlert(
       "Activar empleado",
       `¿Reactivar a ${name}? Volverá a estar habilitado para registrar accesos biométricos.`,
       [
@@ -260,7 +260,7 @@ export default function UsersScreen() {
               );
             } catch (error) {
               if (__DEV__) console.error(error);
-              Alert.alert(
+              customAlert(
                 "Error",
                 (error as any)?.response?.data?.message ?? "No se pudo activar el empleado."
               );
@@ -274,7 +274,7 @@ export default function UsersScreen() {
 
   // Acciones: Desactivar Usuario del Sistema
   const handleDeactivateUser = (id: number, name: string) => {
-    Alert.alert(
+    customAlert(
       "Desactivar usuario",
       `¿Desactivar al usuario ${name}? Perderá inmediatamente el acceso de inicio de sesión.`,
       [
@@ -292,7 +292,7 @@ export default function UsersScreen() {
               );
             } catch (error) {
               if (__DEV__) console.error(error);
-              Alert.alert(
+              customAlert(
                 "Error",
                 (error as any)?.response?.data?.message ?? "No se pudo desactivar el usuario."
               );
@@ -305,7 +305,7 @@ export default function UsersScreen() {
 
   // Acciones: Activar Usuario del Sistema
   const handleActivateUser = (id: number, name: string) => {
-    Alert.alert(
+    customAlert(
       "Activar usuario",
       `¿Reactivar al usuario ${name}? Podrá iniciar sesión en la aplicación nuevamente.`,
       [
@@ -322,7 +322,7 @@ export default function UsersScreen() {
               );
             } catch (error) {
               if (__DEV__) console.error(error);
-              Alert.alert(
+              customAlert(
                 "Error",
                 (error as any)?.response?.data?.message ?? "No se pudo activar el usuario."
               );
@@ -336,15 +336,15 @@ export default function UsersScreen() {
   // Crear Usuario del Sistema
   const handleCreateUserSubmit = async () => {
     if (!createName.trim()) {
-      Alert.alert("Campo requerido", "Por favor ingresa el nombre completo.");
+      customAlert("Campo requerido", "Por favor ingresa el nombre completo.");
       return;
     }
     if (!createEmail.trim()) {
-      Alert.alert("Campo requerido", "Por favor ingresa el correo electrónico.");
+      customAlert("Campo requerido", "Por favor ingresa el correo electrónico.");
       return;
     }
     if (!createPassword.trim()) {
-      Alert.alert("Campo requerido", "Por favor ingresa la contraseña.");
+      customAlert("Campo requerido", "Por favor ingresa la contraseña.");
       return;
     }
     setCreateLoading(true);
@@ -356,7 +356,7 @@ export default function UsersScreen() {
         createRoles,
         user?.id ?? "1"
       );
-      Alert.alert("Éxito", "Usuario del sistema registrado correctamente.");
+      customAlert("Éxito", "Usuario del sistema registrado correctamente.");
       setCreateModalVisible(false);
       setCreateName("");
       setCreateEmail("");
@@ -365,7 +365,7 @@ export default function UsersScreen() {
       fetchData(false);
     } catch (error) {
       if (__DEV__) console.error(error);
-      Alert.alert(
+      customAlert(
         "Error",
         (error as any)?.response?.data?.message ?? "No se pudo crear el usuario del sistema."
       );
@@ -396,7 +396,7 @@ export default function UsersScreen() {
     
     // Evitar que el administrador se quite su propio rol admin
     if (hasRole && role.name === "admin" && String(selectedUser.usuario_id) === String(user?.id)) {
-      Alert.alert("Acción inválida", "No puedes remover tu propio rol de administrador.");
+      customAlert("Acción inválida", "No puedes remover tu propio rol de administrador.");
       return;
     }
 
@@ -425,7 +425,7 @@ export default function UsersScreen() {
       }
     } catch (error) {
       if (__DEV__) console.error(error);
-      Alert.alert(
+      customAlert(
         "Error",
         (error as any)?.response?.data?.message ?? "No se pudo actualizar el rol del usuario."
       );
@@ -599,7 +599,7 @@ export default function UsersScreen() {
                     style={[
                       styles.statusText,
                       {
-                        color: item.is_active ? Colors.Status.success : Colors.Status.error,
+                        color: item.is_active ? C.success : C.error,
                       },
                     ]}
                   >
@@ -618,7 +618,7 @@ export default function UsersScreen() {
                     onPress={() => handleActivateEmployee(item.employee_id, item.full_name)}
                     style={styles.actionBtn}
                   >
-                    <UserCheck size={16} color={Colors.Status.success} />
+                    <UserCheck size={16} color={C.success} />
                   </TouchableOpacity>
                 )}
               </View>
@@ -725,7 +725,7 @@ export default function UsersScreen() {
                         onPress={() => handleActivateUser(item.usuario_id, item.full_name)}
                         style={styles.actionBtn}
                       >
-                        <UserCheck size={16} color={Colors.Status.success} />
+                        <UserCheck size={16} color={C.success} />
                       </TouchableOpacity>
                     )}
                   </View>
@@ -821,7 +821,7 @@ export default function UsersScreen() {
                     style={[
                       styles.statusText,
                       {
-                        color: item.is_active ? Colors.Status.success : Colors.Status.error,
+                        color: item.is_active ? C.success : C.error,
                       },
                     ]}
                   >
@@ -840,7 +840,7 @@ export default function UsersScreen() {
                     style={[
                       styles.roleActionTxt,
                       {
-                        color: item.is_active ? C.redAlert : Colors.Status.success,
+                        color: item.is_active ? C.redAlert : C.success,
                       },
                     ]}
                   >
@@ -956,7 +956,7 @@ export default function UsersScreen() {
                 onPress={handleCreateUserSubmit}
               >
                 <LinearGradient
-                  colors={Colors.Gradients.admin as any}
+                  colors={C.gradients.admin as any}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
                   style={styles.createGrad}
@@ -1097,7 +1097,7 @@ export default function UsersScreen() {
                 onPress={handleCreateRoleSubmit}
               >
                 <LinearGradient
-                  colors={Colors.Gradients.admin as any}
+                  colors={C.gradients.admin as any}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
                   style={styles.createGrad}
@@ -1117,7 +1117,7 @@ export default function UsersScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (C: any) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: C.background,
@@ -1141,8 +1141,8 @@ const styles = StyleSheet.create({
     borderColor: C.border,
   },
   filterBtnActive: {
-    backgroundColor: "rgba(191,0,255,0.1)",
-    borderColor: "rgba(191,0,255,0.3)",
+    backgroundColor: `${C.adminGold}18`,
+    borderColor: `${C.adminGold}40`,
   },
   filterTxt: { color: C.textMuted, fontSize: 12, fontWeight: "600" },
   filterTxtActive: { color: C.adminGold, fontWeight: "600" },

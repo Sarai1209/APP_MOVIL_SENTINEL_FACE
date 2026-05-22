@@ -9,6 +9,7 @@ import "react-native-reanimated";
 import { Colors } from "../constants/theme";
 import { useAuthStore } from "../store/authStore";
 import { useSettingsStore } from "../store/settingsStore";
+import CustomAlert from "../components/ui/CustomAlert";
 
 function RootNavigator() {
   const isLoading = useAuthStore((s) => s.isLoading);
@@ -37,6 +38,7 @@ function RootNavigator() {
         <Stack.Screen name="+not-found" />
       </Stack>
       <StatusBar style={darkMode ? "light" : "dark"} />
+      <CustomAlert />
     </ThemeProvider>
   );
 }

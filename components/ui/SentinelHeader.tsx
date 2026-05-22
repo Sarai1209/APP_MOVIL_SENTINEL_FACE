@@ -2,7 +2,7 @@ import { useRouter } from 'expo-router';
 import { ArrowLeft } from 'lucide-react-native';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { Colors } from '../../constants/theme';
+import { useThemeColors } from '../../constants/theme';
  
 interface Props {
   title:      string;
@@ -17,11 +17,14 @@ interface Props {
  */
 export default function SentinelHeader({ title, showBack = true, right }: Props) {
   const router = useRouter();
+  const C = useThemeColors();
+  const styles = React.useMemo(() => getStyles(C), [C]);
+
   return (
     <View style={styles.wrap}>
       {showBack ? (
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <ArrowLeft size={20} color={Colors.dark.textMuted} />
+          <ArrowLeft size={20} color={C.textMuted} />
         </TouchableOpacity>
       ) : (
         <View style={styles.placeholder} />
@@ -32,7 +35,7 @@ export default function SentinelHeader({ title, showBack = true, right }: Props)
   );
 }
  
-const styles = StyleSheet.create({
+const getStyles = (C: any) => StyleSheet.create({
   wrap: {
     flexDirection:   'row',
     alignItems:      'center',
@@ -47,7 +50,7 @@ const styles = StyleSheet.create({
     textAlign:  'center',
     fontSize:   18,
     fontWeight: '700',
-    color:      Colors.dark.text,
+    color:      C.text,
   },
   right: { width: 40, alignItems: 'flex-end' },
 });

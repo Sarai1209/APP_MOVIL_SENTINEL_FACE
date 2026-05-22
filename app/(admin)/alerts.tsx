@@ -10,7 +10,6 @@ import {
 import React, { useState, useCallback, useRef } from "react";
 import {
     ActivityIndicator,
-    Alert,
     RefreshControl,
     ScrollView,
     StyleSheet,
@@ -18,16 +17,15 @@ import {
     TouchableOpacity,
     View
 } from "react-native";
-import { Colors } from "../../constants/theme";
+import { useThemeColors } from "../../constants/theme";
 import { api } from "../../services/api";
 import { useAuthStore } from "../../store/authStore";
 import * as Haptics from "expo-haptics";
 import { useSettingsStore } from "../../store/settingsStore";
 import { AlertRecord } from "../../types/domain";
+import { customAlert } from "../../store/alertStore";
 
 type FilterKey = "all" | "SPOOFING_ATTEMPT" | "UNKNOWN_FACE" | "resolved";
-const C = Colors.dark;
-
 const FILTERS: { key: FilterKey; label: string }[] = [
   { key: "all", label: "Todas" },
   { key: "SPOOFING_ATTEMPT", label: "Spoofing" },
@@ -35,10 +33,10 @@ const FILTERS: { key: FilterKey; label: string }[] = [
   { key: "resolved", label: "Resueltas" },
 ];
 
-function severityColor(s: string) {
-  if (s === "CRITICAL" || s === "HIGH") return Colors.Status.error;
-  if (s === "MEDIUM") return Colors.Status.warning;
-  return Colors.Status.info;
+function severityColor(s: string, C: any) {
+  if (s === "CRITICAL" || s === "HIGH") return C.error;
+  if (s === "MEDIUM") return C.warning;
+  return C.info;
 }
 
 function alertIcon(type: string, color: string) {
@@ -57,6 +55,8 @@ function timeAgo(iso: string) {
 }
 
 export default function AlertsScreen() {
+  const C = useThemeColors();
+  const styles = React.useMemo(() => getStyles(C), [C]);
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const [activeAlerts,   setActiveAlerts]   = useState<AlertRecord[]>([]);
@@ -88,7 +88,7 @@ export default function AlertsScreen() {
         newAlerts.length > prevAlertsCount.current
       ) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
-        Alert.alert(
+        customAlert(
           "⚠️ Nueva Alerta de Seguridad",
           "Se ha detectado un nuevo evento sospechoso no resuelto en el sistema."
         );
@@ -96,7 +96,7 @@ export default function AlertsScreen() {
       prevAlertsCount.current = newAlerts.length;
     } catch (error) {
       if (__DEV__) console.error(error);
-      Alert.alert("Error", "No se pudieron cargar las alertas. Intenta de nuevo.");
+      customAlert("Error", "No se pudieron cargar las alertas. Intenta de nuevo.");
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -136,7 +136,7 @@ export default function AlertsScreen() {
       }
     } catch (error) {
       if (__DEV__) console.error(error);
-      Alert.alert(
+      customAlert(
         "Error",
         (error as any)?.response?.data?.message ?? "No se pudo resolver la alerta."
       );
@@ -148,19 +148,19 @@ export default function AlertsScreen() {
       <View
         style={{
           flex: 1,
-          backgroundColor: Colors.dark.background,
+          backgroundColor: C.background,
           alignItems: "center",
           justifyContent: "center",
         }}
       >
-        <ActivityIndicator size="large" color={Colors.dark.adminGold} />
+        <ActivityIndicator size="large" color={C.adminGold} />
       </View>
     );
   }
 
   return (
     <LinearGradient
-      colors={["#12101E", "#1A1630", "#12101E"]}
+      colors={C.gradients.bg}
       style={styles.bg}
     >
       <View style={styles.header}>
@@ -220,7 +220,7 @@ export default function AlertsScreen() {
           </View>
         ) : (
           displayed.map((alert) => {
-            const color = severityColor(alert.severity);
+            const color = severityColor(alert.severity, C);
             return (
               <TouchableOpacity
                 key={alert.alert_id}
@@ -268,7 +268,7 @@ export default function AlertsScreen() {
                       style={styles.markBtn}
                       onPress={() => resolveAlert(alert.alert_id)}
                     >
-                      <CheckCircle size={20} color={Colors.Status.success} />
+                      <CheckCircle size={20} color={C.success} />
                     </TouchableOpacity>
                   )}
                 </View>
@@ -281,7 +281,7 @@ export default function AlertsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (C: any) => StyleSheet.create({
   bg: { flex: 1 },
   header: {
     flexDirection: "row",
@@ -304,8 +304,8 @@ const styles = StyleSheet.create({
     borderColor: C.border,
   },
   filterBtnActive: {
-    backgroundColor: "rgba(195,160,240,0.14)",
-    borderColor: "rgba(195,160,240,0.40)",
+    backgroundColor: `${C.purpleNeon}18`,
+    borderColor: `${C.purpleNeon}40`,
   },
   filterTxt: { color: C.textMuted, fontSize: 13 },
   filterTxtActive: { color: C.pinkNeon, fontWeight: "600" },

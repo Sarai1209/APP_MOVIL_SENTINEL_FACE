@@ -1,16 +1,8 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { Colors } from '../../constants/theme';
+import { useThemeColors } from '../../constants/theme';
  
 type Status = 'active' | 'inactive' | 'blocked' | 'warning' | 'info';
- 
-const CONFIG: Record<Status, { label: string; color: string }> = {
-  active:   { label: 'Activo',    color: Colors.Status.success },
-  inactive: { label: 'Inactivo',  color: Colors.Status.warning },
-  blocked:  { label: 'Bloqueado', color: Colors.Status.error   },
-  warning:  { label: 'Alerta',    color: Colors.Status.warning },
-  info:     { label: 'Info',      color: Colors.Status.info    },
-};
  
 interface Props {
   status: Status;
@@ -22,6 +14,16 @@ interface Props {
  * estado coloreada. Usada en Users, Reports, Profile.
  */
 export default function StatusBadge({ status, label }: Props) {
+  const C = useThemeColors();
+
+  const CONFIG: Record<Status, { label: string; color: string }> = {
+    active:   { label: 'Activo',    color: C.success },
+    inactive: { label: 'Inactivo',  color: C.warning },
+    blocked:  { label: 'Bloqueado', color: C.error   },
+    warning:  { label: 'Alerta',    color: C.warning },
+    info:     { label: 'Info',      color: C.info    },
+  };
+
   const { label: defaultLabel, color } = CONFIG[status];
   const text = label ?? defaultLabel;
  

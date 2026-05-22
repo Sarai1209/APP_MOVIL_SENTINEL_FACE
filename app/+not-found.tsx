@@ -1,8 +1,11 @@
+import React from 'react';
 import { Link, Stack } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
-import { Colors } from '../constants/theme';
+import { useThemeColors } from '../constants/theme';
  
 export default function NotFoundScreen() {
+  const C = useThemeColors();
+  const styles = React.useMemo(() => getStyles(C), [C]);
   return (
     <>
       <Stack.Screen options={{ title: 'Oops!' }} />
@@ -17,13 +20,13 @@ export default function NotFoundScreen() {
   );
 }
  
-const styles = StyleSheet.create({
+const getStyles = (C: any) => StyleSheet.create({
   container: {
     flex: 1, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: Colors.dark.background,
+    backgroundColor: C.background,
   },
-  code:     { fontSize: 72, fontWeight: '800', color: Colors.dark.pinkNeon, opacity: 0.5 },
-  title:    { fontSize: 18, color: Colors.dark.textMuted, marginTop: 8, marginBottom: 24 },
-  link:     { paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12, borderWidth: 1, borderColor: Colors.dark.border },
-  linkText: { color: Colors.dark.text, fontSize: 15 },
+  code:     { fontSize: 72, fontWeight: '800', color: C.pinkNeon, opacity: 0.5 },
+  title:    { fontSize: 18, color: C.textMuted, marginTop: 8, marginBottom: 24 },
+  link:     { paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12, borderWidth: 1, borderColor: C.border },
+  linkText: { color: C.text, fontSize: 15 },
 });

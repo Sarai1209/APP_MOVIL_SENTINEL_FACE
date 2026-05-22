@@ -10,7 +10,6 @@ import {
 import React, { useState } from "react";
 import {
     ActivityIndicator,
-    Alert,
     Modal,
     ScrollView,
     StyleSheet,
@@ -20,13 +19,12 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
-import { Colors } from "../../constants/theme";
+import { useThemeColors } from "../../constants/theme";
 import { useAuthStore } from "../../store/authStore";
 import { api } from "../../services/api";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSettingsStore } from "../../store/settingsStore";
-
-const C = Colors.dark;
+import { customAlert } from "../../store/alertStore";
 
 const SettingRow = ({
   icon: Icon,
@@ -37,38 +35,44 @@ const SettingRow = ({
   isSwitch,
   switchValue,
   onToggle,
-}: any) => (
-  <TouchableOpacity
-    style={styles.row}
-    onPress={onPress}
-    disabled={isSwitch && !onPress}
-    activeOpacity={0.7}
-  >
-    <View style={[styles.iconWrap, { backgroundColor: `${color}15` }]}>
-      <Icon size={18} color={color} />
-    </View>
-    <Text style={styles.rowLabel}>{label}</Text>
-    {isSwitch ? (
-      <Switch
-        value={switchValue}
-        onValueChange={onToggle}
-        thumbColor="white"
-        trackColor={{ true: C.adminGold, false: C.border }}
-      />
-    ) : (
-      <View style={styles.rowRight}>
-        {value && <Text style={styles.rowValue}>{value}</Text>}
-        <ChevronRight size={16} color={C.textMuted} />
+}: any) => {
+  const C = useThemeColors();
+  const styles = getStyles(C);
+  return (
+    <TouchableOpacity
+      style={styles.row}
+      onPress={onPress}
+      disabled={isSwitch && !onPress}
+      activeOpacity={0.7}
+    >
+      <View style={[styles.iconWrap, { backgroundColor: `${color}15` }]}>
+        <Icon size={18} color={color} />
       </View>
-    )}
-  </TouchableOpacity>
-);
+      <Text style={styles.rowLabel}>{label}</Text>
+      {isSwitch ? (
+        <Switch
+          value={switchValue}
+          onValueChange={onToggle}
+          thumbColor="white"
+          trackColor={{ true: C.adminGold, false: C.border }}
+        />
+      ) : (
+        <View style={styles.rowRight}>
+          {value && <Text style={styles.rowValue}>{value}</Text>}
+          <ChevronRight size={16} color={C.textMuted} />
+        </View>
+      )}
+    </TouchableOpacity>
+  );
+};
 
 export default function SettingsScreen() {
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
   const router = useRouter();
   const { darkMode, notifications, setDarkMode, setNotifications } = useSettingsStore();
+  const C = useThemeColors();
+  const styles = React.useMemo(() => getStyles(C), [C]);
 
   const [passwordModalVisible, setPasswordModalVisible] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
@@ -78,29 +82,29 @@ export default function SettingsScreen() {
 
   const handleChangePasswordSubmit = async () => {
     if (!currentPassword.trim() || !newPassword.trim() || !confirmPassword.trim()) {
-      Alert.alert("Campos requeridos", "Por favor completa todos los campos.");
+      customAlert("Campos requeridos", "Por favor completa todos los campos.");
       return;
     }
     if (newPassword !== confirmPassword) {
-      Alert.alert("Error de validación", "La nueva contraseña y su confirmación no coinciden.");
+      customAlert("Error de validación", "La nueva contraseña y su confirmación no coinciden.");
       return;
     }
     if (newPassword.length < 6) {
-      Alert.alert("Error de validación", "La nueva contraseña debe tener al menos 6 caracteres.");
+      customAlert("Error de validación", "La nueva contraseña debe tener al menos 6 caracteres.");
       return;
     }
 
     setChangeLoading(true);
     try {
       await api.changePassword(currentPassword, newPassword);
-      Alert.alert("Éxito", "Tu contraseña ha sido cambiada correctamente.");
+      customAlert("Éxito", "Tu contraseña ha sido cambiada correctamente.");
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
       setPasswordModalVisible(false);
     } catch (error) {
       if (__DEV__) console.error(error);
-      Alert.alert(
+      customAlert(
         "Error",
         (error as any)?.response?.data?.message ?? "No se pudo cambiar la contraseña. Verifica los datos."
       );
@@ -110,7 +114,7 @@ export default function SettingsScreen() {
   };
 
   const handleLogout = () => {
-    Alert.alert(
+    customAlert(
       "Cerrar sesión",
       "¿Estás seguro de que quieres cerrar sesión del panel de administración?",
       [
@@ -263,7 +267,7 @@ export default function SettingsScreen() {
                 onPress={handleChangePasswordSubmit}
               >
                 <LinearGradient
-                  colors={Colors.Gradients.admin as any}
+                  colors={C.gradients.admin as any}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
                   style={styles.createGrad}
@@ -283,7 +287,7 @@ export default function SettingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (C: any) => StyleSheet.create({
   container: { flex: 1, backgroundColor: C.background },
   content: { padding: 20, paddingTop: 60, paddingBottom: 40 },
   title: { color: C.text, fontSize: 22, fontWeight: "700", marginBottom: 20 },
@@ -381,7 +385,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   modalLabel: {
-    color: "rgba(195,160,240,0.9)",
+    color: C.purpleNeon,
     fontSize: 9,
     fontWeight: "700",
     letterSpacing: 2,

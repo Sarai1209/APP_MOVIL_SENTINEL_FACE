@@ -1,3 +1,4 @@
+import { customAlert } from "../../store/alertStore";
 import { useFocusEffect } from "expo-router";
 import {
     Activity,
@@ -15,7 +16,6 @@ import {
 import React, { useState, useCallback } from "react";
 import {
     ActivityIndicator,
-    Alert,
     FlatList,
     RefreshControl,
     StyleSheet,
@@ -23,31 +23,29 @@ import {
     TextInput,
     View,
 } from "react-native";
-import { Colors } from "../../constants/theme";
+import { useThemeColors } from "../../constants/theme";
 import { api } from "../../services/api";
 import { AuditEntry } from "../../types/domain";
 
-const C = Colors.dark;
-
-function getActionStyle(action: string) {
+function getActionStyle(action: string, C: any) {
   const upper = action.toUpperCase();
   if (upper.includes("CREATE") || upper.includes("ADD") || upper.includes("REGISTER") || upper.includes("ASSIGN")) {
     return {
-      color: Colors.Status.success,
+      color: C.success,
       bg: "rgba(0, 229, 160, 0.12)",
       icon: PlusCircle,
     };
   }
   if (upper.includes("DEACTIVATE") || upper.includes("REMOVE") || upper.includes("DELETE")) {
     return {
-      color: Colors.Status.error,
+      color: C.error,
       bg: "rgba(255, 61, 113, 0.12)",
       icon: MinusCircle,
     };
   }
   if (upper.includes("ACTIVATE")) {
     return {
-      color: Colors.Status.success,
+      color: C.success,
       bg: "rgba(0, 229, 160, 0.12)",
       icon: CheckCircle2,
     };
@@ -61,7 +59,7 @@ function getActionStyle(action: string) {
   }
   if (upper.includes("ALERT") || upper.includes("RESOLVE")) {
     return {
-      color: Colors.Status.warning,
+      color: C.warning,
       bg: "rgba(255, 171, 0, 0.12)",
       icon: Shield,
     };
@@ -96,6 +94,8 @@ function formatDetail(detail: any): string {
 }
 
 export default function AuditScreen() {
+  const C = useThemeColors();
+  const styles = React.useMemo(() => getStyles(C), [C]);
   const [logs, setLogs] = useState<AuditEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -110,7 +110,7 @@ export default function AuditScreen() {
       setLogs(res.data.audit ?? []);
     } catch (error) {
       if (__DEV__) console.error(error);
-      Alert.alert("Error", "No se pudieron cargar los registros de auditoría.");
+      customAlert("Error", "No se pudieron cargar los registros de auditoría.");
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -195,7 +195,7 @@ export default function AuditScreen() {
           </View>
         }
         renderItem={({ item }) => {
-          const styleInfo = getActionStyle(item.action);
+          const styleInfo = getActionStyle(item.action, C);
           const IconComponent = styleInfo.icon;
           const formattedDetails = formatDetail(item.detail);
 
@@ -254,7 +254,7 @@ export default function AuditScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (C: any) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: C.background,

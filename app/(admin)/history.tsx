@@ -1,10 +1,10 @@
+import { customAlert } from "../../store/alertStore";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter, useFocusEffect } from "expo-router";
 import { ArrowLeft, CheckCircle, XCircle } from "lucide-react-native";
 import React, { useState, useCallback } from "react";
 import {
     ActivityIndicator,
-    Alert,
     FlatList,
     RefreshControl,
     StyleSheet,
@@ -12,11 +12,9 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
-import { Colors } from "../../constants/theme";
+import { Colors, useThemeColors } from "../../constants/theme";
 import { api } from "../../services/api";
 import { AccessLog } from "../../types/domain";
-
-const C = Colors.dark;
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleString("es-CO", {
@@ -29,6 +27,8 @@ function formatDate(iso: string) {
 }
 
 export default function HistoryScreen() {
+  const C = useThemeColors();
+  const styles = React.useMemo(() => getStyles(C), [C]);
   const router = useRouter();
   const [logs, setLogs] = useState<AccessLog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,7 +43,7 @@ export default function HistoryScreen() {
       setLogs(res.data.logs ?? []);
     } catch (error) {
       if (__DEV__) console.error(error);
-      Alert.alert("Error", "No se pudo cargar el historial de accesos.");
+      customAlert("Error", "No se pudo cargar el historial de accesos.");
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -66,7 +66,7 @@ export default function HistoryScreen() {
       <View
         style={{
           flex: 1,
-          backgroundColor: Colors.dark.background,
+          backgroundColor: C.background,
           alignItems: "center",
           justifyContent: "center",
         }}
@@ -81,7 +81,7 @@ export default function HistoryScreen() {
 
   return (
     <LinearGradient
-      colors={["#12101E", "#1A1630", "#12101E"]}
+      colors={C.gradients.bg}
       style={styles.bg}
     >
       <View style={styles.header}>
@@ -96,8 +96,8 @@ export default function HistoryScreen() {
 
       <View style={styles.summary}>
         {[
-          { label: "Accesos", value: granted, color: Colors.Status.success },
-          { label: "Denegados", value: denied, color: Colors.Status.error },
+          { label: "Accesos", value: granted, color: C.success },
+          { label: "Denegados", value: denied, color: C.error },
           { label: "Total", value: logs.length, color: C.blueNeon },
         ].map((s, i) => (
           <View
@@ -127,7 +127,7 @@ export default function HistoryScreen() {
         }
         renderItem={({ item, index }: { item: AccessLog; index: number }) => {
           const ok = item.access_result === "GRANTED";
-          const color = ok ? Colors.Status.success : Colors.Status.error;
+          const color = ok ? C.success : C.error;
           return (
             <View style={[styles.row, index > 0 && styles.divider]}>
               <View style={[styles.iconBox, { backgroundColor: `${color}15` }]}>
@@ -164,7 +164,7 @@ export default function HistoryScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (C: any) => StyleSheet.create({
   bg: { flex: 1 },
   header: {
     flexDirection: "row",

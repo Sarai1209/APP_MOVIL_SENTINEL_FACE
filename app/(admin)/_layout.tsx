@@ -8,23 +8,25 @@ import {
     Users,
 } from "lucide-react-native";
 import React from "react";
-import { Colors } from "../../constants/theme";
+import { useThemeColors } from "../../constants/theme";
 import { useAuthStore } from "../../store/authStore";
 
 export default function AdminLayout() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const hasRole = useAuthStore((s) => s.hasRole);
+  const C = useThemeColors();
+
   if (!isAuthenticated || !hasRole("admin")) return <Redirect href="/" />;
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: Colors.dark.adminGold,
-        tabBarInactiveTintColor: "rgba(255,255,255,0.3)",
+        tabBarActiveTintColor: C.adminGold,
+        tabBarInactiveTintColor: C.textSubtle,
         tabBarStyle: {
-          backgroundColor: Colors.dark.background,
-          borderTopColor: Colors.dark.border,
+          backgroundColor: C.background,
+          borderTopColor: C.border,
           height: 65,
           paddingBottom: 10,
         },

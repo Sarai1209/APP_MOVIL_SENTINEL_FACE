@@ -8,7 +8,7 @@ import {
   View,
   ViewStyle,
 } from 'react-native';
-import { Colors } from '../../constants/theme';
+import { useThemeColors } from '../../constants/theme';
 
 interface Props extends TextInputProps {
   icon:            React.ReactNode;
@@ -17,12 +17,15 @@ interface Props extends TextInputProps {
 }
 
 export default function InputField({ icon, rightElement, containerStyle, ...rest }: Props) {
+  const C = useThemeColors();
+  const styles = React.useMemo(() => getStyles(C), [C]);
+
   return (
     <View style={[styles.wrap, containerStyle]}>  
       <View style={styles.iconWrap}>{icon}</View>
       <TextInput
         style={styles.input}
-        placeholderTextColor={Colors.dark.textSubtle}
+        placeholderTextColor={C.textSubtle}
         {...rest}
       />
       {rightElement && (
@@ -32,21 +35,21 @@ export default function InputField({ icon, rightElement, containerStyle, ...rest
   );
 }
  
-const styles = StyleSheet.create({
+const getStyles = (C: any) => StyleSheet.create({
   wrap: {
     flexDirection:   'row',
     alignItems:      'center',
-    backgroundColor: Colors.dark.surface,
+    backgroundColor: C.surface,
     borderRadius:    12,
     borderWidth:     1,
-    borderColor:     Colors.dark.border,
+    borderColor:     C.border,
     paddingHorizontal: 14,
     height:          52,
   },
   iconWrap: { marginRight: 10 },
   input: {
     flex:     1,
-    color:    Colors.dark.text,
+    color:    C.text,
     fontSize: 15,
   },
   right: { padding: 6 },

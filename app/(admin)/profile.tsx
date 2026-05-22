@@ -1,21 +1,21 @@
+import { customAlert } from "../../store/alertStore";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { ChevronRight, Clock, LogOut, Shield } from "lucide-react-native";
 import React from "react";
 import {
-    Alert,
     ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
     View,
 } from "react-native";
-import { Colors } from "../../constants/theme";
+import { useThemeColors } from "../../constants/theme";
 import { useAuthStore } from "../../store/authStore";
 
-const C = Colors.dark;
-
 export default function ProfileScreen() {
+  const C = useThemeColors();
+  const styles = React.useMemo(() => getStyles(C), [C]);
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
   const router = useRouter();
@@ -30,7 +30,7 @@ export default function ProfileScreen() {
     : "A";
 
   const handleLogout = () => {
-    Alert.alert("Cerrar sesión", "¿Estás seguro de que quieres salir?", [
+    customAlert("Cerrar sesión", "¿Estás seguro de que quieres salir?", [
       { text: "Cancelar", style: "cancel" },
       {
         text: "Salir",
@@ -45,7 +45,7 @@ export default function ProfileScreen() {
 
   return (
     <LinearGradient
-      colors={["#050514", "#0D0D2B", "#050514"]}
+      colors={C.gradients.bg}
       style={styles.bg}
     >
       <ScrollView
@@ -56,7 +56,7 @@ export default function ProfileScreen() {
 
         <View style={styles.avatarSection}>
           <LinearGradient
-            colors={Colors.Gradients.admin as any}
+            colors={C.gradients.admin as any}
             style={styles.avatar}
           >
             <Text style={styles.avatarTxt}>{initials}</Text>
@@ -100,7 +100,7 @@ export default function ProfileScreen() {
         </View>
 
         <TouchableOpacity onPress={handleLogout} style={styles.logoutBtn}>
-          <LogOut size={18} color={Colors.Status.error} />
+          <LogOut size={18} color={C.error} />
           <Text style={styles.logoutTxt}>Cerrar sesión</Text>
         </TouchableOpacity>
       </ScrollView>
@@ -108,7 +108,7 @@ export default function ProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (C: any) => StyleSheet.create({
   bg: { flex: 1 },
   scroll: { paddingHorizontal: 20, paddingTop: 60, paddingBottom: 40 },
   pageTitle: {
@@ -195,5 +195,5 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     backgroundColor: "rgba(255,61,113,0.06)",
   },
-  logoutTxt: { color: Colors.Status.error, fontSize: 15, fontWeight: "600" },
+  logoutTxt: { color: C.error, fontSize: 15, fontWeight: "600" },
 });
