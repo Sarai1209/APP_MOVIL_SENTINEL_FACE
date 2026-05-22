@@ -462,34 +462,6 @@ export default function UsersScreen() {
         <Text style={styles.title} numberOfLines={1}>
           {titleText} ({activeCount} activos)
         </Text>
-        <View style={styles.headerActions}>
-          <TouchableOpacity
-            style={[styles.filterBtn, !showInactive && styles.filterBtnActive]}
-            onPress={() => setShowInactive((p) => !p)}
-          >
-            <Text style={[styles.filterTxt, !showInactive && styles.filterTxtActive]}>
-              {showInactive ? "Ver activos" : "Ver todos"}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.addBtn}
-            onPress={() => {
-              if (activeTab === "employees") {
-                router.push("/(admin)/register");
-              } else if (activeTab === "system_users") {
-                setCreateModalVisible(true);
-              } else if (activeTab === "roles") {
-                setCreateRoleModalVisible(true);
-              }
-            }}
-          >
-            {activeTab === "roles" ? (
-              <Plus size={20} color={C.adminGold} />
-            ) : (
-              <UserPlus size={20} color={C.adminGold} />
-            )}
-          </TouchableOpacity>
-        </View>
       </View>
 
       {/* Selector de Pestañas */}
@@ -547,275 +519,338 @@ export default function UsersScreen() {
       </View>
 
       {activeTab === "employees" && (
-        /* LISTADO DE EMPLEADOS (CON FOTO) */
-        <FlatList
-          data={filteredEmployees}
-          keyExtractor={(item) => String(item.employee_id)}
-          contentContainerStyle={{ paddingBottom: 20 }}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor={C.adminGold}
-              colors={[C.adminGold]}
-            />
-          }
-          ItemSeparatorComponent={() => <View style={styles.separator} />}
-          ListEmptyComponent={
-            <View style={styles.empty}>
-              <Text style={styles.emptyTxt}>
-                {search ? "Sin resultados para tu búsqueda" : "No hay empleados registrados"}
+        <>
+          <View style={styles.submenuActions}>
+            <TouchableOpacity
+              style={[styles.filterBtn, !showInactive && styles.filterBtnActive]}
+              onPress={() => setShowInactive((p) => !p)}
+            >
+              <Text style={[styles.filterTxt, !showInactive && styles.filterTxtActive]}>
+                {showInactive ? "Ver activos" : "Ver todos"}
               </Text>
-            </View>
-          }
-          renderItem={({ item }) => (
-            <View style={[styles.userRow, !item.is_active && styles.userRowInactive]}>
-              <View style={[styles.avatar, !item.is_active && styles.avatarInactive, { overflow: "hidden" }]}>
-                <Text style={[styles.avatarText, !item.is_active && styles.avatarTextInactive]}>
-                  {item.full_name[0].toUpperCase()}
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={styles.addBtnInline}
+              onPress={() => router.push("/(admin)/register")}
+            >
+              <UserPlus size={16} color={C.adminGold} />
+              <Text style={styles.addBtnInlineText}>Registrar Personal</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* LISTADO DE EMPLEADOS (CON FOTO) */}
+          <FlatList
+            data={filteredEmployees}
+            keyExtractor={(item) => String(item.employee_id)}
+            contentContainerStyle={{ paddingBottom: 20 }}
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor={C.adminGold}
+                colors={[C.adminGold]}
+              />
+            }
+            ItemSeparatorComponent={() => <View style={styles.separator} />}
+            ListEmptyComponent={
+              <View style={styles.empty}>
+                <Text style={styles.emptyTxt}>
+                  {search ? "Sin resultados para tu búsqueda" : "No hay empleados registrados"}
                 </Text>
-                <Image
-                  source={{
-                    uri: `${BASE_URL}/employees/${item.employee_id}/image`,
-                    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-                  }}
-                  style={StyleSheet.absoluteFill}
-                  contentFit="cover"
-                  onError={() => {
-                    // No hacer nada si falla, queda la inicial como fallback
-                  }}
-                />
               </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.userName, !item.is_active && styles.textInactive]}>
-                  {item.full_name}
-                </Text>
-                <Text style={styles.userDoc}>Doc: {item.document_id}</Text>
-              </View>
-              <View
-                style={[
-                  styles.statusBadge,
-                  {
-                    backgroundColor: item.is_active
-                      ? "rgba(0,229,160,0.15)"
-                      : "rgba(255,61,113,0.12)",
-                  },
-                ]}
-              >
-                <Text
+            }
+            renderItem={({ item }) => (
+              <View style={[styles.userRow, !item.is_active && styles.userRowInactive]}>
+                <View style={[styles.avatar, !item.is_active && styles.avatarInactive, { overflow: "hidden" }]}>
+                  <Text style={[styles.avatarText, !item.is_active && styles.avatarTextInactive]}>
+                    {item.full_name[0].toUpperCase()}
+                  </Text>
+                  <Image
+                    source={{
+                      uri: `${BASE_URL}/employees/${item.employee_id}/image`,
+                      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+                    }}
+                    style={StyleSheet.absoluteFill}
+                    contentFit="cover"
+                    onError={() => {
+                      // No hacer nada si falla, queda la inicial como fallback
+                    }}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.userName, !item.is_active && styles.textInactive]}>
+                    {item.full_name}
+                  </Text>
+                  <Text style={styles.userDoc}>Doc: {item.document_id}</Text>
+                </View>
+                <View
                   style={[
-                    styles.statusText,
+                    styles.statusBadge,
                     {
-                      color: item.is_active ? Colors.Status.success : Colors.Status.error,
+                      backgroundColor: item.is_active
+                        ? "rgba(0,229,160,0.15)"
+                        : "rgba(255,61,113,0.12)",
                     },
                   ]}
                 >
-                  {item.is_active ? "Activo" : "Inactivo"}
-                </Text>
+                  <Text
+                    style={[
+                      styles.statusText,
+                      {
+                        color: item.is_active ? Colors.Status.success : Colors.Status.error,
+                      },
+                    ]}
+                  >
+                    {item.is_active ? "Activo" : "Inactivo"}
+                  </Text>
+                </View>
+                {item.is_active ? (
+                  <TouchableOpacity
+                    onPress={() => handleDeactivateEmployee(item.employee_id, item.full_name)}
+                    style={styles.actionBtn}
+                  >
+                    <UserMinus size={16} color={C.redAlert} />
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity
+                    onPress={() => handleActivateEmployee(item.employee_id, item.full_name)}
+                    style={styles.actionBtn}
+                  >
+                    <UserCheck size={16} color={Colors.Status.success} />
+                  </TouchableOpacity>
+                )}
               </View>
-              {item.is_active ? (
-                <TouchableOpacity
-                  onPress={() => handleDeactivateEmployee(item.employee_id, item.full_name)}
-                  style={styles.actionBtn}
-                >
-                  <UserMinus size={16} color={C.redAlert} />
-                </TouchableOpacity>
-              ) : (
-                <TouchableOpacity
-                  onPress={() => handleActivateEmployee(item.employee_id, item.full_name)}
-                  style={styles.actionBtn}
-                >
-                  <UserCheck size={16} color={Colors.Status.success} />
-                </TouchableOpacity>
-              )}
-            </View>
-          )}
-        />
+            )}
+          />
+        </>
       )}
 
       {activeTab === "system_users" && (
-        /* LISTADO DE USUARIOS DEL SISTEMA */
-        <FlatList
-          data={filteredSystemUsers}
-          keyExtractor={(item) => String(item.usuario_id)}
-          contentContainerStyle={{ paddingBottom: 20 }}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor={C.adminGold}
-              colors={[C.adminGold]}
-            />
-          }
-          ItemSeparatorComponent={() => <View style={styles.separator} />}
-          ListEmptyComponent={
-            <View style={styles.empty}>
-              <Text style={styles.emptyTxt}>
-                {search ? "Sin resultados para tu búsqueda" : "No hay usuarios de sistema registrados"}
+        <>
+          <View style={styles.submenuActions}>
+            <TouchableOpacity
+              style={[styles.filterBtn, !showInactive && styles.filterBtnActive]}
+              onPress={() => setShowInactive((p) => !p)}
+            >
+              <Text style={[styles.filterTxt, !showInactive && styles.filterTxtActive]}>
+                {showInactive ? "Ver activos" : "Ver todos"}
               </Text>
-            </View>
-          }
-          renderItem={({ item }) => {
-            const isMe = String(item.usuario_id) === String(user?.id);
-            return (
-              <View style={[styles.userRow, !item.is_active && styles.userRowInactive]}>
-                <TouchableOpacity
-                  style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 12 }}
-                  onPress={() => openRolesModal(item)}
-                >
-                  <View style={[styles.avatar, !item.is_active && styles.avatarInactive]}>
-                    <Text style={[styles.avatarText, !item.is_active && styles.avatarTextInactive]}>
-                      {item.full_name[0].toUpperCase()}
-                    </Text>
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.userName, !item.is_active && styles.textInactive]}>
-                      {item.full_name} {isMe && <Text style={styles.myUserTag}>(Tú)</Text>}
-                    </Text>
-                    <Text style={styles.userDoc}>{item.email}</Text>
-                    
-                    {/* Tags de roles */}
-                    <View style={styles.rolesContainer}>
-                      {item.roles && item.roles.length > 0 ? (
-                        item.roles.map((r, idx) => (
-                          <View key={idx} style={styles.roleBadge}>
-                            <Text style={styles.roleBadgeTxt}>{r}</Text>
-                          </View>
-                        ))
-                      ) : (
-                        <Text style={styles.noRolesTxt}>Sin roles</Text>
-                      )}
-                    </View>
-                  </View>
-                </TouchableOpacity>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={styles.addBtnInline}
+              onPress={() => setCreateModalVisible(true)}
+            >
+              <UserPlus size={16} color={C.adminGold} />
+              <Text style={styles.addBtnInlineText}>Adicionar Usuario</Text>
+            </TouchableOpacity>
+          </View>
 
-                <View style={styles.actionsContainer}>
+          {/* LISTADO DE USUARIOS DEL SISTEMA */}
+          <FlatList
+            data={filteredSystemUsers}
+            keyExtractor={(item) => String(item.usuario_id)}
+            contentContainerStyle={{ paddingBottom: 20 }}
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor={C.adminGold}
+                colors={[C.adminGold]}
+              />
+            }
+            ItemSeparatorComponent={() => <View style={styles.separator} />}
+            ListEmptyComponent={
+              <View style={styles.empty}>
+                <Text style={styles.emptyTxt}>
+                  {search ? "Sin resultados para tu búsqueda" : "No hay usuarios de sistema registrados"}
+                </Text>
+              </View>
+            }
+            renderItem={({ item }) => {
+              const isMe = String(item.usuario_id) === String(user?.id);
+              return (
+                <View style={[styles.userRow, !item.is_active && styles.userRowInactive]}>
                   <TouchableOpacity
+                    style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 12 }}
                     onPress={() => openRolesModal(item)}
-                    style={styles.actionBtn}
                   >
-                    <Shield size={16} color={C.adminGold} />
+                    <View style={[styles.avatar, !item.is_active && styles.avatarInactive]}>
+                      <Text style={[styles.avatarText, !item.is_active && styles.avatarTextInactive]}>
+                        {item.full_name[0].toUpperCase()}
+                      </Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.userName, !item.is_active && styles.textInactive]}>
+                        {item.full_name} {isMe && <Text style={styles.myUserTag}>(Tú)</Text>}
+                      </Text>
+                      <Text style={styles.userDoc}>{item.email}</Text>
+                      
+                      {/* Tags de roles */}
+                      <View style={styles.rolesContainer}>
+                        {item.roles && item.roles.length > 0 ? (
+                          item.roles.map((r, idx) => (
+                            <View key={idx} style={styles.roleBadge}>
+                              <Text style={styles.roleBadgeTxt}>{r}</Text>
+                            </View>
+                          ))
+                        ) : (
+                          <Text style={styles.noRolesTxt}>Sin roles</Text>
+                        )}
+                      </View>
+                    </View>
                   </TouchableOpacity>
 
-                  {item.is_active ? (
+                  <View style={styles.actionsContainer}>
                     <TouchableOpacity
-                      onPress={() => handleDeactivateUser(item.usuario_id, item.full_name)}
-                      disabled={isMe}
-                      style={[styles.actionBtn, isMe && { opacity: 0.25 }]}
-                    >
-                      <UserMinus size={16} color={C.redAlert} />
-                    </TouchableOpacity>
-                  ) : (
-                    <TouchableOpacity
-                      onPress={() => handleActivateUser(item.usuario_id, item.full_name)}
+                      onPress={() => openRolesModal(item)}
                       style={styles.actionBtn}
                     >
-                      <UserCheck size={16} color={Colors.Status.success} />
+                      <Shield size={16} color={C.adminGold} />
                     </TouchableOpacity>
-                  )}
+
+                    {item.is_active ? (
+                      <TouchableOpacity
+                        onPress={() => handleDeactivateUser(item.usuario_id, item.full_name)}
+                        disabled={isMe}
+                        style={[styles.actionBtn, isMe && { opacity: 0.25 }]}
+                      >
+                        <UserMinus size={16} color={C.redAlert} />
+                      </TouchableOpacity>
+                    ) : (
+                      <TouchableOpacity
+                        onPress={() => handleActivateUser(item.usuario_id, item.full_name)}
+                        style={styles.actionBtn}
+                      >
+                        <UserCheck size={16} color={Colors.Status.success} />
+                      </TouchableOpacity>
+                    )}
+                  </View>
                 </View>
-              </View>
-            );
-          }}
-        />
+              );
+            }}
+          />
+        </>
       )}
 
       {activeTab === "roles" && (
-        /* LISTADO DE ROLES DEL SISTEMA */
-        <FlatList
-          data={filteredRoles}
-          keyExtractor={(item) => String(item.role_id)}
-          contentContainerStyle={{ paddingBottom: 20 }}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor={C.adminGold}
-              colors={[C.adminGold]}
-            />
-          }
-          ItemSeparatorComponent={() => <View style={styles.separator} />}
-          ListEmptyComponent={
-            <View style={styles.empty}>
-              <Text style={styles.emptyTxt}>
-                {search ? "Sin resultados para tu búsqueda" : "No hay roles registrados"}
+        <>
+          <View style={styles.submenuActions}>
+            <TouchableOpacity
+              style={[styles.filterBtn, !showInactive && styles.filterBtnActive]}
+              onPress={() => setShowInactive((p) => !p)}
+            >
+              <Text style={[styles.filterTxt, !showInactive && styles.filterTxtActive]}>
+                {showInactive ? "Ver activos" : "Ver todos"}
               </Text>
-            </View>
-          }
-          renderItem={({ item }) => (
-            <View style={[styles.roleRow, !item.is_active && styles.roleRowInactive]}>
-              <View
-                style={[
-                  styles.roleIcon,
-                  {
-                    backgroundColor: item.is_active
-                      ? `${C.adminGold}15`
-                      : `${C.textMuted}15`,
-                  },
-                ]}
-              >
-                {item.is_active ? (
-                  <ShieldCheck size={20} color={C.adminGold} />
-                ) : (
-                  <ShieldOff size={20} color={C.textMuted} />
-                )}
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.roleName, !item.is_active && styles.textInactive]}>
-                  {item.name}
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={styles.addBtnInline}
+              onPress={() => setCreateRoleModalVisible(true)}
+            >
+              <Plus size={16} color={C.adminGold} />
+              <Text style={styles.addBtnInlineText}>Nuevo Rol</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* LISTADO DE ROLES DEL SISTEMA */}
+          <FlatList
+            data={filteredRoles}
+            keyExtractor={(item) => String(item.role_id)}
+            contentContainerStyle={{ paddingBottom: 20 }}
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor={C.adminGold}
+                colors={[C.adminGold]}
+              />
+            }
+            ItemSeparatorComponent={() => <View style={styles.separator} />}
+            ListEmptyComponent={
+              <View style={styles.empty}>
+                <Text style={styles.emptyTxt}>
+                  {search ? "Sin resultados para tu búsqueda" : "No hay roles registrados"}
                 </Text>
-                {item.description ? (
-                  <Text style={styles.roleDesc} numberOfLines={1}>
-                    {item.description}
+              </View>
+            }
+            renderItem={({ item }) => (
+              <View style={[styles.roleRow, !item.is_active && styles.roleRowInactive]}>
+                <View
+                  style={[
+                    styles.roleIcon,
+                    {
+                      backgroundColor: item.is_active
+                        ? `${C.adminGold}15`
+                        : `${C.textMuted}15`,
+                    },
+                  ]}
+                >
+                  {item.is_active ? (
+                    <ShieldCheck size={20} color={C.adminGold} />
+                  ) : (
+                    <ShieldOff size={20} color={C.textMuted} />
+                  )}
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.roleName, !item.is_active && styles.textInactive]}>
+                    {item.name}
                   </Text>
-                ) : null}
-              </View>
-              <View
-                style={[
-                  styles.statusBadge,
-                  {
-                    backgroundColor: item.is_active
-                      ? "rgba(0,229,160,0.15)"
-                      : "rgba(255,61,113,0.12)",
-                  },
-                ]}
-              >
-                <Text
+                  {item.description ? (
+                    <Text style={styles.roleDesc} numberOfLines={1}>
+                      {item.description}
+                    </Text>
+                  ) : null}
+                </View>
+                <View
                   style={[
-                    styles.statusText,
+                    styles.statusBadge,
                     {
-                      color: item.is_active ? Colors.Status.success : Colors.Status.error,
+                      backgroundColor: item.is_active
+                        ? "rgba(0,229,160,0.15)"
+                        : "rgba(255,61,113,0.12)",
                     },
                   ]}
                 >
-                  {item.is_active ? "Activo" : "Inactivo"}
-                </Text>
-              </View>
-              <TouchableOpacity
-                style={styles.actionBtn}
-                onPress={() =>
-                  item.is_active
-                    ? handleDeactivateRole(item.role_id, item.name)
-                    : handleActivateRole(item.role_id, item.name)
-                }
-              >
-                <Text
-                  style={[
-                    styles.roleActionTxt,
-                    {
-                      color: item.is_active ? C.redAlert : Colors.Status.success,
-                    },
-                  ]}
+                  <Text
+                    style={[
+                      styles.statusText,
+                      {
+                        color: item.is_active ? Colors.Status.success : Colors.Status.error,
+                      },
+                    ]}
+                  >
+                    {item.is_active ? "Activo" : "Inactivo"}
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.actionBtn}
+                  onPress={() =>
+                    item.is_active
+                      ? handleDeactivateRole(item.role_id, item.name)
+                      : handleActivateRole(item.role_id, item.name)
+                  }
                 >
-                  {item.is_active ? "Desactivar" : "Activar"}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          )}
-        />
+                  <Text
+                    style={[
+                      styles.roleActionTxt,
+                      {
+                        color: item.is_active ? C.redAlert : Colors.Status.success,
+                      },
+                    ]}
+                  >
+                    {item.is_active ? "Desactivar" : "Activar"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          />
+        </>
       )}
 
       {/* MODAL: NUEVO USUARIO DE SISTEMA */}
@@ -1098,8 +1133,8 @@ const styles = StyleSheet.create({
   title: { color: C.text, fontSize: 20, fontWeight: "700", flex: 1 },
   headerActions: { flexDirection: "row", alignItems: "center", gap: 8 },
   filterBtn: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     borderRadius: 8,
     backgroundColor: C.surface,
     borderWidth: 1,
@@ -1109,9 +1144,32 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(191,0,255,0.1)",
     borderColor: "rgba(191,0,255,0.3)",
   },
-  filterTxt: { color: C.textMuted, fontSize: 12 },
+  filterTxt: { color: C.textMuted, fontSize: 12, fontWeight: "600" },
   filterTxtActive: { color: C.adminGold, fontWeight: "600" },
   addBtn: { padding: 8, backgroundColor: `${C.adminGold}15`, borderRadius: 10 },
+  submenuActions: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+    gap: 12,
+  },
+  addBtnInline: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: `${C.adminGold}15`,
+    borderColor: `${C.adminGold}30`,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  addBtnInlineText: {
+    color: C.adminGold,
+    fontSize: 12,
+    fontWeight: "600",
+  },
   
   // Tabs styling
   tabContainer: {
