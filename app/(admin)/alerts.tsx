@@ -189,41 +189,46 @@ export default function AlertsScreen() {
       colors={C.gradients.bg}
       style={styles.bg}
     >
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.title}>Alertas</Text>
-          {unread > 0 && <Text style={styles.unread}>{unread} pendientes</Text>}
+      {/* Sección fija: encabezado + filtros */}
+      <View>
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.title}>Alertas</Text>
+            {unread > 0 && <Text style={styles.unread}>{unread} pendientes</Text>}
+          </View>
         </View>
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filtersWrap}
+          style={styles.filtersScroll}
+        >
+          {FILTERS.map((f) => (
+            <TouchableOpacity
+              key={f.key}
+              style={[
+                styles.filterBtn,
+                filter === f.key && styles.filterBtnActive,
+              ]}
+              onPress={() => setFilter(f.key)}
+            >
+              <Text
+                style={[
+                  styles.filterTxt,
+                  filter === f.key && styles.filterTxtActive,
+                ]}
+              >
+                {f.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
       </View>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.filtersWrap}
-        style={styles.filtersScroll}
-      >
-        {FILTERS.map((f) => (
-          <TouchableOpacity
-            key={f.key}
-            style={[
-              styles.filterBtn,
-              filter === f.key && styles.filterBtnActive,
-            ]}
-            onPress={() => setFilter(f.key)}
-          >
-            <Text
-              style={[
-                styles.filterTxt,
-                filter === f.key && styles.filterTxtActive,
-              ]}
-            >
-              {f.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-
+      {/* Lista — ocupa el espacio restante */}
       <FlatList
+        style={styles.alertList}
         data={displayed}
         keyExtractor={(alert) => String(alert.alert_id)}
         contentContainerStyle={styles.list}
@@ -318,6 +323,7 @@ export default function AlertsScreen() {
 
 const getStyles = (C: any) => StyleSheet.create({
   bg: { flex: 1 },
+  alertList: { flex: 1 },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
