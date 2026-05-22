@@ -92,10 +92,6 @@ export default function SettingsScreen() {
     );
   };
 
-  const handleAudit = () => {
-    router.push("/(admin)/audit");
-  };
-
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Text style={styles.title}>Configuración</Text>
@@ -146,12 +142,6 @@ export default function SettingsScreen() {
           color={C.greenNeon}
           label="Gestión de roles"
           onPress={() => router.push("/(admin)/roles")}
-        />
-        <SettingRow
-          icon={Shield}
-          color={C.redAlert}
-          label="Registros de auditoría"
-          onPress={handleAudit}
         />
       </View>
 
