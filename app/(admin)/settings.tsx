@@ -93,10 +93,7 @@ export default function SettingsScreen() {
   };
 
   const handleAudit = () => {
-    Alert.alert(
-      "Registros de auditoría",
-      "Consulta los registros completos desde el endpoint GET /api/audit del backend.",
-    );
+    router.push("/(admin)/audit");
   };
 
   return (

@@ -1,8 +1,8 @@
 import { Redirect, Tabs } from "expo-router";
 import {
-    BarChart3,
     Bell,
     Camera,
+    ClipboardList,
     Settings,
     Shield,
     Users,
@@ -52,10 +52,10 @@ export default function AdminLayout() {
         }}
       />
       <Tabs.Screen
-        name="reports"
+        name="audit"
         options={{
-          title: "Reportes",
-          tabBarIcon: ({ color }) => <BarChart3 size={24} color={color} />,
+          title: "Auditoría",
+          tabBarIcon: ({ color }) => <ClipboardList size={24} color={color} />,
         }}
       />
       <Tabs.Screen

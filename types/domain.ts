@@ -44,11 +44,12 @@ export interface Role {
 export interface AuditEntry {
   audit_id: number;
   action: string;
-  table_name: string;
-  record_id: number | null;
-  detail: Record<string, unknown>;
+  target_table: string | null;
+  target_id: number | null;
+  detail: Record<string, any> | string | null;
+  ip_address: string | null;
   created_at: string;
-  full_name: string | null;
+  usuario_name: string | null;
 }
 
 export interface Usuario {
