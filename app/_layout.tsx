@@ -2,9 +2,6 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from "@react-navigation/native
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { ActivityIndicator, View } from "react-native";
-// Requerido por el plugin de Babel de react-native-reanimated para inicializar
-// el motor de animaciones antes de que cualquier componente lo use.
-// Ver: https://docs.swmansion.com/react-native-reanimated/docs/fundamentals/installation
 import "react-native-reanimated";
 import { Colors } from "../constants/theme";
 import { useAuthStore } from "../store/authStore";
